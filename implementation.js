@@ -61,6 +61,20 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
 .thread-card-icon-info > * {
   pointer-events: auto !important;
 }
+
+/* 2-Line View Adjustments */
+body.qcd-2-line-view .thread-card-icon-info {
+  position: relative !important;
+  top: 3px !important;
+  margin-left: 4px !important;
+}
+body.qcd-2-line-view .subject {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 1 auto !important;
+}
 `;
 
     async function waitForThreadCards(doc, retries = 10, delay = 200) {
@@ -101,6 +115,15 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
               doc.removeEventListener("mousemove", doc._quickDeleteHoverHandler, true);
               delete doc._quickDeleteHoverHandler;
             }
+            if (doc._quickDeleteResizeObserver) {
+              doc._quickDeleteResizeObserver.disconnect();
+              delete doc._quickDeleteResizeObserver;
+            }
+            if (doc._quickDeleteMutationObserver) {
+              doc._quickDeleteMutationObserver.disconnect();
+              delete doc._quickDeleteMutationObserver;
+            }
+            doc.body.classList.remove("qcd-2-line-view");
           }
         }      
       }
@@ -117,6 +140,38 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
 
           // Wait until thread cards exist.
           await waitForThreadCards(doc);
+
+          // Robust detection of 2-line view (handles view switching/re-renders)
+          let observedCard = null;
+          
+          doc._quickDeleteResizeObserver = new doc.defaultView.ResizeObserver(entries => {
+            for (let entry of entries) {
+              if (entry.target === observedCard) {
+                if (entry.target.clientHeight < 58) {
+                  doc.body.classList.add("qcd-2-line-view");
+                } else {
+                  doc.body.classList.remove("qcd-2-line-view");
+                }
+              }
+            }
+          });
+
+          const refreshObserver = () => {
+            if (observedCard && observedCard.isConnected) return;
+            
+            const iconContainer = doc.querySelector(".thread-card-icon-info");
+            const newCard = iconContainer?.closest("tr, li, thread-card");
+            if (newCard) {
+              observedCard = newCard;
+              doc._quickDeleteResizeObserver.observe(newCard);
+            }
+          };
+
+          doc._quickDeleteMutationObserver = new doc.defaultView.MutationObserver(refreshObserver);
+          doc._quickDeleteMutationObserver.observe(doc.body, { childList: true, subtree: true });
+          
+          // Initial check
+          refreshObserver();
 
           // Apply CSS.
           addDynamicCSS(doc, styleId, cssText);
@@ -143,7 +198,7 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
             if (iconContainer) {
               const rect = iconContainer.getBoundingClientRect();
               const x = e.clientX - rect.left;
-              // Gleiche Logik wie beim Klick: nur die rechten 25px sind der Button
+              // Same logic as click: only the right 25px are the button
               if (x >= rect.width - 25) {
                 isOverButton = true;
               }
