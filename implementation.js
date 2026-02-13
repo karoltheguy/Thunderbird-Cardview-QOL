@@ -192,44 +192,110 @@ body.qcd-compact-mode .thread-card-icon-info {
               // quickly (clicks on different cards can otherwise be seen as dblclick).
               doc._quickDeleteSuppressUntil = Date.now() + 450;
 
-              // Perform selection and delete. We keep the synthetic click to keep
-              // UI selection behavior but suppress following dblclick events.
-              card.click();
-              const win = e.target.ownerDocument.defaultView;
+              // --- DEBUG LOGGING START ---
+              console.log("QuickDelete: Click registered on card:", card);
+              // --- DEBUG LOGGING END ---
 
-              // Try to delete specifically if possible (safer than global command)
-              let handled = false;
-              const target = card.message || card.messageKey;
-              if (win.gFolderDisplay && target) {
+              card.click();
+              
+              // Helper to safely unwrap objects (XrayWrappers) - CRITICAL for accessing internal TB objects
+              const unwrap = (obj) => {
+                try { return obj && obj.wrappedJSObject ? obj.wrappedJSObject : obj; } catch (e) { return obj; }
+              };
+
+              const contentWin = e.target.ownerDocument.defaultView;
+              const chromeWin = nativeTab.window || Services.wm.getMostRecentWindow("mail:3pane");
+              
+              const realChromeWin = unwrap(chromeWin);
+              const realContentWin = unwrap(contentWin);
+              
+              // Locate gFolderDisplay: usually on chrome window, but sometimes in content
+              const folderDisplay = realChromeWin?.gFolderDisplay || realContentWin?.gFolderDisplay;
+              const realFolderDisplay = unwrap(folderDisplay);
+
+              // Access the underlying JS object (bypassing security wrapper)
+              let rawCard = unwrap(card);
+
+              // 1. DIRECT DELETE STRATEGY (Preferred)
+              let targetMsg = null;
+              try {
+                targetMsg = rawCard.message || 
+                            rawCard.messageKey || 
+                            rawCard.messageDisplayItem?.message || 
+                            rawCard._instance?.message || 
+                            rawCard._instance?.messageDisplayItem?.message;
+              } catch (e) {
+                console.warn("QuickDelete: Property access failed", e);
+              }
+
+              // Fallback: Try ARIA index if direct property access failed
+              if (!targetMsg && realFolderDisplay) {
                 try {
-                  let msgHdr = target;
-                  if (typeof msgHdr === "number" && win.gFolderDisplay.selectedFolder) {
-                    msgHdr = win.gFolderDisplay.selectedFolder.GetMessageHeader(msgHdr);
+                  const view = unwrap(realFolderDisplay.view);
+                  const dbView = unwrap(view?.dbView);
+                  const ariaIndex = card.getAttribute("aria-rowindex") || card.getAttribute("aria-posinset");
+                  
+                  if (dbView && ariaIndex) {
+                    const viewIndex = parseInt(ariaIndex) - 1;
+                    if (viewIndex >= 0) {
+                      const header = dbView.getMsgHdrAt(viewIndex);
+                      if (header) targetMsg = header;
+                    }
+                  }
+                } catch (e) {
+                  console.error("QuickDelete: ARIA Index Error", e);
+                }
+              }
+
+              if (realFolderDisplay && targetMsg) {
+                try {
+                  let msgHdr = targetMsg;
+                  if (typeof msgHdr === "number" && realFolderDisplay.selectedFolder) {
+                    msgHdr = realFolderDisplay.selectedFolder.GetMessageHeader(msgHdr);
                   }
                   if (msgHdr) {
-                    win.gFolderDisplay.deleteMessages([msgHdr]);
-                    handled = true;
+                    console.log("QuickDelete: DIRECT PATH. Deleting subject:", msgHdr.subject);
+                    realFolderDisplay.deleteMessages([msgHdr]);
+                    return; // Success - exit here
                   }
                 } catch (ex) {
                   console.error("QuickDelete: Direct delete failed", ex);
                 }
               }
 
-              if (!handled) {
-                win.setTimeout(() => {
+              // 2. FALLBACK STRATEGY: RETRY LOOP
+              // If direct delete failed, we wait for the selection to update and then trigger cmd_delete.
+              console.warn("QuickDelete: FALLBACK PATH (Retry Loop) initiated.");
+              
+              let attempts = 0;
+              const maxAttempts = 20; // Try for ~1000ms (20 * 50ms)
+              
+              const checkAndDelete = () => {
+                  attempts++;
                   try {
-                    // Verify selection matches the clicked card before deleting
-                    const isActive = win.document.activeElement && win.document.activeElement.closest("tr, li, thread-card") === card;
+                    const isActive = contentWin.document.activeElement && contentWin.document.activeElement.closest("tr, li, thread-card") === card;
                     const isSelected = card.classList.contains("selected") || card.getAttribute("aria-selected") === "true";
 
+                    console.log(`QuickDelete: Retry attempt ${attempts}/${maxAttempts}. Selected: ${isSelected}, Active: ${isActive}`);
+
                     if (isActive || isSelected) {
-                      win.goDoCommand("cmd_delete");
+                      console.log("QuickDelete: Selection confirmed. Executing cmd_delete.");
+                      // Execute command on the window that has the controller (usually chromeWin)
+                      (realChromeWin || realContentWin).goDoCommand("cmd_delete");
+                    } else if (attempts < maxAttempts) {
+                      // Not yet selected, try again in 50ms
+                      contentWin.setTimeout(checkAndDelete, 50);
+                    } else {
+                      console.error("QuickDelete: ABORT. Could not verify selection after retries.");
                     }
                   } catch (err) {
-                    // ignore deletion errors
+                    console.error("QuickDelete: Error in retry loop:", err);
                   }
-                }, 100);
-              }
+              };
+              
+              // Start the loop
+              contentWin.setTimeout(checkAndDelete, 50);
+
             } catch (err) {
               console.error("Error in quick delete handler:", err);
             }
