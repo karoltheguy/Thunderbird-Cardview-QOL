@@ -75,8 +75,11 @@ li.thread-card .card-container {
   inset-block-end: 0.5px !important;
 }
 
-:is(tr, li)[is="thread-group-header"] .card-container > .${buttonClass},
-:is(tr, li)[aria-expanded] .card-container > .${buttonClass} {
+:is(tr, li)[data-properties~="dummy"][aria-expanded] .card-container > .${buttonClass} {
+  display: none !important;
+}
+
+:is(tr, li)[is="thread-group-header"] .card-container > .${buttonClass} {
   display: none !important;
 }
 `;
@@ -91,14 +94,11 @@ li.thread-card .card-container {
       return false;
     }
 
-    function deleteCardFromButton(button, nativeTab) {
+    function deleteCardFromButton(button) {
       const card = button.closest("tr, li, thread-card");
       if (!card) {
         return;
       }
-
-      const doc = button.ownerDocument;
-      doc._quickDeleteSuppressUntil = Date.now() + 450;
 
       const unwrap = obj => {
         try {
@@ -108,21 +108,11 @@ li.thread-card .card-container {
         }
       };
 
-      const contentWin = doc.defaultView;
-      const chromeWin = nativeTab.window || Services.wm.getMostRecentWindow("mail:3pane");
-      const realChromeWin = unwrap(chromeWin);
+      const contentWin = button.ownerDocument.defaultView;
       const realContentWin = unwrap(contentWin);
       const rawCard = unwrap(card);
       const dbView = unwrap(realContentWin?.gDBView || contentWin?.gDBView);
       let targetViewIndex = null;
-      const debugInfo = {
-        cardIndex: card?.index,
-        cardInternalIndex: card?._index,
-        rawCardIndex: rawCard?.index,
-        rawCardInternalIndex: rawCard?._index,
-        ariaRowIndex: card?.getAttribute("aria-rowindex"),
-        ariaPosInset: card?.getAttribute("aria-posinset"),
-      };
 
       const candidateViewIndices = [
         rawCard?._index,
@@ -139,15 +129,8 @@ li.thread-card .card-container {
 
       let targetMsg = null;
       try {
-        debugInfo.hasDbView = !!dbView;
-        debugInfo.dbViewRowCount =
-          typeof dbView?.rowCount === "number" ? dbView.rowCount : null;
         if (dbView && targetViewIndex !== null && typeof dbView.getMsgHdrAt === "function") {
-          const header = dbView.getMsgHdrAt(targetViewIndex);
-          if (header) {
-            targetMsg = header;
-            debugInfo.gDbViewSubject = header.subject || null;
-          }
+          targetMsg = dbView.getMsgHdrAt(targetViewIndex);
         }
       } catch (err) {
         console.warn("QuickDelete: gDBView lookup failed", err);
@@ -160,11 +143,6 @@ li.thread-card .card-container {
           rawCard.messageDisplayItem?.message ||
           rawCard._instance?.message ||
           rawCard._instance?.messageDisplayItem?.message;
-        if (targetMsg && typeof targetMsg !== "number") {
-          debugInfo.cardMessageSubject = targetMsg.subject || null;
-        } else if (typeof targetMsg === "number") {
-          debugInfo.cardMessageKey = targetMsg;
-        }
       } catch (err) {
         console.warn("QuickDelete: Property access failed", err);
       }
@@ -180,11 +158,7 @@ li.thread-card .card-container {
           }
 
           if (dbView && targetViewIndex !== null) {
-            const header = dbView.getMsgHdrAt(targetViewIndex);
-            if (header) {
-              targetMsg = header;
-              debugInfo.fallbackSubject = header.subject || null;
-            }
+            targetMsg = dbView.getMsgHdrAt(targetViewIndex);
           }
         } catch (err) {
           console.error("QuickDelete: ARIA Index Error", err);
@@ -193,26 +167,19 @@ li.thread-card .card-container {
 
       if (targetMsg) {
         try {
-          let msgHdr = targetMsg;
-          debugInfo.hasMsgHdr = !!msgHdr;
-          debugInfo.msgHdrSubject = typeof msgHdr === "object" ? (msgHdr?.subject || null) : null;
-          debugInfo.hasFolderDeleteMessages = !!msgHdr?.folder?.deleteMessages;
+          const msgHdr = targetMsg;
           if (msgHdr?.folder?.deleteMessages) {
-            debugInfo.deletePath = "folder.deleteMessages";
-            console.log("QuickDelete: Using delete path", debugInfo);
             msgHdr.folder.deleteMessages([msgHdr], null, false, false, null, true);
             return;
           }
         } catch (err) {
-          debugInfo.deletePath = debugInfo.deletePath || "direct-delete-error";
-          console.error("QuickDelete: Direct delete failed", err, debugInfo);
+          console.error("QuickDelete: Direct delete failed", err);
         }
       }
-      debugInfo.deletePath = debugInfo.deletePath || "no-delete-path";
-      console.error("QuickDelete: No message header found for clicked card.", debugInfo);
+      console.error("QuickDelete: No message header found for clicked card.");
     }
 
-    function createDeleteButton(doc, nativeTab) {
+    function createDeleteButton(doc) {
       const button = doc.createElement("button");
       button.className = buttonClass;
       button.type = "button";
@@ -225,21 +192,21 @@ li.thread-card .card-container {
       button.addEventListener("click", event => {
         event.preventDefault();
         event.stopImmediatePropagation();
-        deleteCardFromButton(button, nativeTab);
+        deleteCardFromButton(button);
       }, true);
       return button;
     }
 
-    function ensureDeleteButtons(doc, nativeTab) {
+    function ensureDeleteButtons(doc) {
       for (const row of doc.querySelectorAll("[is='thread-card'], tr.thread-card, li.thread-card")) {
         const container = row.querySelector(".card-container") || row;
         if (!container.querySelector(`:scope > .${buttonClass}`)) {
-          container.appendChild(createDeleteButton(doc, nativeTab));
+          container.appendChild(createDeleteButton(doc));
         }
       }
     }
 
-    function observeThreadCards(doc, nativeTab) {
+    function observeThreadCards(doc) {
       if (doc._qcdButtonObserver) {
         return;
       }
@@ -252,7 +219,7 @@ li.thread-card .card-container {
         scheduled = true;
         doc.defaultView.requestAnimationFrame(() => {
           scheduled = false;
-          ensureDeleteButtons(doc, nativeTab);
+          ensureDeleteButtons(doc);
         });
       };
 
@@ -278,18 +245,9 @@ li.thread-card .card-container {
             if (style) {
               style.remove();
             }
-            if (doc._quickDeleteHandler) {
-              doc.removeEventListener("click", doc._quickDeleteHandler, true);
-              delete doc._quickDeleteHandler;
-            }
             if (doc._quickDeleteMouseDownHandler) {
               doc.removeEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
               delete doc._quickDeleteMouseDownHandler;
-            }
-            if (doc._quickDeleteDblHandler) {
-              doc.removeEventListener("dblclick", doc._quickDeleteDblHandler, true);
-              delete doc._quickDeleteDblHandler;
-              delete doc._quickDeleteSuppressUntil;
             }
             if (doc._qcdButtonObserver) {
               doc._qcdButtonObserver.disconnect();
@@ -315,8 +273,8 @@ li.thread-card .card-container {
           await waitForThreadCards(doc);
 
           addDynamicCSS(doc, styleId, cssText);
-          ensureDeleteButtons(doc, nativeTab);
-          observeThreadCards(doc, nativeTab);
+          ensureDeleteButtons(doc);
+          observeThreadCards(doc);
 
           if (doc._quickDeleteMouseDownHandler) {
             doc.removeEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
@@ -331,26 +289,6 @@ li.thread-card .card-container {
           };
           doc.addEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
 
-          doc._quickDeleteSuppressUntil = 0;
-          if (doc._quickDeleteDblHandler) {
-            doc.removeEventListener("dblclick", doc._quickDeleteDblHandler, true);
-          }
-          doc._quickDeleteDblHandler = ev => {
-            try {
-              if (doc._quickDeleteSuppressUntil && Date.now() < doc._quickDeleteSuppressUntil) {
-                ev.preventDefault();
-                ev.stopImmediatePropagation();
-              }
-            } catch (err) {
-              // ignore
-            }
-          };
-          doc.addEventListener("dblclick", doc._quickDeleteDblHandler, true);
-
-          if (doc._quickDeleteHandler) {
-            doc.removeEventListener("click", doc._quickDeleteHandler, true);
-            delete doc._quickDeleteHandler;
-          }
         },
       }
     };
