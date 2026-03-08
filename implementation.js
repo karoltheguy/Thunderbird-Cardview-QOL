@@ -3,6 +3,7 @@
     const styleId = "styles-from-add-delete-button-addon";
     const buttonClass = "qcd-delete-button";
     const buttonIconClass = "qcd-delete-button-icon";
+    const threadCardSelector = "[is='thread-card'], tr.thread-card, li.thread-card";
 
     function addDynamicCSS(document, id, css) {
       const existing = document.getElementById(id);
@@ -16,9 +17,7 @@
     }
 
     const cssText = `
-[is="thread-card"] .card-container,
-tr.thread-card .card-container,
-li.thread-card .card-container {
+${threadCardSelector} .card-container {
   position: relative !important;
 }
 
@@ -67,31 +66,89 @@ li.thread-card .card-container {
   transform: scale(0.85) !important;
 }
 
-.card-layout.cards-row-compact .card-container > .${buttonClass} {
-  inset-block-end: 0px !important;
-}
+.card-layout.cards-row-compact .card-container > .${buttonClass} { inset-block-end: 0px !important; }
+.card-layout:not(.cards-row-compact) .card-container > .${buttonClass} { inset-block-end: 0.5px !important; }
 
-.card-layout:not(.cards-row-compact) .card-container > .${buttonClass} {
-  inset-block-end: 0.5px !important;
-}
-
-:is(tr, li)[data-properties~="dummy"][aria-expanded] .card-container > .${buttonClass} {
-  display: none !important;
-}
-
+:is(tr, li)[data-properties~="dummy"][aria-expanded] .card-container > .${buttonClass},
 :is(tr, li)[is="thread-group-header"] .card-container > .${buttonClass} {
   display: none !important;
 }
 `;
 
+    function unwrap(obj) {
+      try {
+        return obj && obj.wrappedJSObject ? obj.wrappedJSObject : obj;
+      } catch (err) {
+        return obj;
+      }
+    }
+
     async function waitForThreadCards(doc, retries = 10, delay = 200) {
       for (let i = 0; i < retries; i++) {
-        if (doc.querySelector(".thread-card-icon-info")) {
+        if (doc.querySelector(threadCardSelector)) {
           return true;
         }
         await new Promise(r => doc.defaultView.setTimeout(r, delay));
       }
       return false;
+    }
+
+    function getViewIndex(card, rawCard) {
+      const candidateViewIndices = [
+        rawCard?._index,
+        rawCard?.index,
+        card._index,
+        card.index,
+      ];
+
+      for (const candidate of candidateViewIndices) {
+        if (Number.isInteger(candidate) && candidate >= 0) {
+          return candidate;
+        }
+      }
+
+      const ariaIndex = card.getAttribute("aria-rowindex") || card.getAttribute("aria-posinset");
+      if (!ariaIndex) {
+        return null;
+      }
+
+      const viewIndex = parseInt(ariaIndex, 10) - 1;
+      return viewIndex >= 0 ? viewIndex : null;
+    }
+
+    function getMessageHeader(card) {
+      const contentWin = card.ownerDocument.defaultView;
+      const rawCard = unwrap(card);
+      const dbView = unwrap(contentWin?.gDBView);
+      const viewIndex = getViewIndex(card, rawCard);
+
+      if (dbView && viewIndex !== null && typeof dbView.getMsgHdrAt === "function") {
+        try {
+          const msgHdr = dbView.getMsgHdrAt(viewIndex);
+          if (msgHdr) {
+            return msgHdr;
+          }
+        } catch (err) {
+          console.warn("QuickDelete: gDBView lookup failed", err);
+        }
+      }
+
+      try {
+        const fallbackMsg =
+          rawCard.message ||
+          rawCard.messageKey ||
+          rawCard.messageDisplayItem?.message ||
+          rawCard._instance?.message ||
+          rawCard._instance?.messageDisplayItem?.message;
+
+        if (fallbackMsg && typeof fallbackMsg !== "number") {
+          return fallbackMsg;
+        }
+      } catch (err) {
+        console.warn("QuickDelete: Property access failed", err);
+      }
+
+      return null;
     }
 
     function deleteCardFromButton(button) {
@@ -100,83 +157,17 @@ li.thread-card .card-container {
         return;
       }
 
-      const unwrap = obj => {
-        try {
-          return obj && obj.wrappedJSObject ? obj.wrappedJSObject : obj;
-        } catch (err) {
-          return obj;
-        }
-      };
-
-      const contentWin = button.ownerDocument.defaultView;
-      const realContentWin = unwrap(contentWin);
-      const rawCard = unwrap(card);
-      const dbView = unwrap(realContentWin?.gDBView || contentWin?.gDBView);
-      let targetViewIndex = null;
-
-      const candidateViewIndices = [
-        rawCard?._index,
-        rawCard?.index,
-        card._index,
-        card.index,
-      ];
-      for (const candidate of candidateViewIndices) {
-        if (Number.isInteger(candidate) && candidate >= 0) {
-          targetViewIndex = candidate;
-          break;
-        }
-      }
-
-      let targetMsg = null;
-      try {
-        if (dbView && targetViewIndex !== null && typeof dbView.getMsgHdrAt === "function") {
-          targetMsg = dbView.getMsgHdrAt(targetViewIndex);
-        }
-      } catch (err) {
-        console.warn("QuickDelete: gDBView lookup failed", err);
+      const msgHdr = getMessageHeader(card);
+      if (!msgHdr?.folder?.deleteMessages) {
+        console.error("QuickDelete: No message header found for clicked card.");
+        return;
       }
 
       try {
-        targetMsg = targetMsg ||
-          rawCard.message ||
-          rawCard.messageKey ||
-          rawCard.messageDisplayItem?.message ||
-          rawCard._instance?.message ||
-          rawCard._instance?.messageDisplayItem?.message;
+        msgHdr.folder.deleteMessages([msgHdr], null, false, false, null, true);
       } catch (err) {
-        console.warn("QuickDelete: Property access failed", err);
+        console.error("QuickDelete: Direct delete failed", err);
       }
-
-      if (!targetMsg) {
-        try {
-          const ariaIndex = card.getAttribute("aria-rowindex") || card.getAttribute("aria-posinset");
-          if (targetViewIndex === null && ariaIndex) {
-            const viewIndex = parseInt(ariaIndex, 10) - 1;
-            if (viewIndex >= 0) {
-              targetViewIndex = viewIndex;
-            }
-          }
-
-          if (dbView && targetViewIndex !== null) {
-            targetMsg = dbView.getMsgHdrAt(targetViewIndex);
-          }
-        } catch (err) {
-          console.error("QuickDelete: ARIA Index Error", err);
-        }
-      }
-
-      if (targetMsg) {
-        try {
-          const msgHdr = targetMsg;
-          if (msgHdr?.folder?.deleteMessages) {
-            msgHdr.folder.deleteMessages([msgHdr], null, false, false, null, true);
-            return;
-          }
-        } catch (err) {
-          console.error("QuickDelete: Direct delete failed", err);
-        }
-      }
-      console.error("QuickDelete: No message header found for clicked card.");
     }
 
     function createDeleteButton(doc) {
@@ -198,7 +189,7 @@ li.thread-card .card-container {
     }
 
     function ensureDeleteButtons(doc) {
-      for (const row of doc.querySelectorAll("[is='thread-card'], tr.thread-card, li.thread-card")) {
+      for (const row of doc.querySelectorAll(threadCardSelector)) {
         const container = row.querySelector(".card-container") || row;
         if (!container.querySelector(`:scope > .${buttonClass}`)) {
           container.appendChild(createDeleteButton(doc));
