@@ -20,9 +20,6 @@ If you want to install it manually:
 8. Confirm the installation.
 9. Restart Thunderbird if Thunderbird asks for it.
 
-## ⚠️ Warning
-
-- This add-on does not currently use Thunderbird's normal undo-friendly delete command path.
-- Because of that, a message deleted with this button cannot reliably be restored with `Ctrl+Z`.
-- `Ctrl+Z` may instead affect a different earlier action (in a different inbox), for example a message that was deleted, restored, or moved through Thunderbird's normal command path.
-- This add-on was largely vibe-coded and may still contain bugs, edge cases, or behavior that differs from Thunderbird's standard delete workflow
+## Note
+- This add-on was largely vibe-coded and may still contain bugs or edge cases. Reports are very welcome.
+- I am also looking for long-term maintainers to help keep the add-on working over time.
