@@ -22,14 +22,16 @@ ${threadCardSelector} .card-container {
 }
 
 .thread-card-icon-info {
+  position: relative !important;
   padding-inline-end: 32px !important;
 }
 
+.thread-card-icon-info > .${buttonClass},
 .card-container > .${buttonClass} {
   appearance: none !important;
   position: absolute !important;
-  inset-inline-end: 8px !important;
-  inset-block-end: -2px !important;
+  inset-inline-end: 0 !important;
+  inset-block-start: 50% !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -41,10 +43,12 @@ ${threadCardSelector} .card-container {
   border-radius: 4px !important;
   background: transparent !important;
   cursor: pointer !important;
+  transform: translateY(-50%) !important;
   transition: transform 0.15s ease !important;
   z-index: 20 !important;
 }
 
+.thread-card-icon-info > .${buttonClass} > .${buttonIconClass},
 .card-container > .${buttonClass} > .${buttonIconClass} {
   inline-size: 16px !important;
   block-size: 16px !important;
@@ -57,18 +61,20 @@ ${threadCardSelector} .card-container {
   transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease !important;
 }
 
+.thread-card-icon-info > .${buttonClass}:hover > .${buttonIconClass},
+.thread-card-icon-info > .${buttonClass}:focus-visible > .${buttonIconClass},
 .card-container > .${buttonClass}:hover > .${buttonIconClass},
 .card-container > .${buttonClass}:focus-visible > .${buttonIconClass} {
   opacity: 1 !important;
 }
 
+.thread-card-icon-info > .${buttonClass}:active > .${buttonIconClass},
 .card-container > .${buttonClass}:active > .${buttonIconClass} {
   transform: scale(0.85) !important;
 }
 
-.card-layout.cards-row-compact .card-container > .${buttonClass} { inset-block-end: 0px !important; }
-.card-layout:not(.cards-row-compact) .card-container > .${buttonClass} { inset-block-end: 0.5px !important; }
-
+:is(tr, li)[data-properties~="dummy"][aria-expanded] .thread-card-icon-info > .${buttonClass},
+:is(tr, li)[is="thread-group-header"] .thread-card-icon-info > .${buttonClass},
 :is(tr, li)[data-properties~="dummy"][aria-expanded] .card-container > .${buttonClass},
 :is(tr, li)[is="thread-group-header"] .card-container > .${buttonClass} {
   display: none !important;
@@ -164,7 +170,11 @@ ${threadCardSelector} .card-container {
       }
 
       try {
-        msgHdr.folder.deleteMessages([msgHdr], null, false, false, null, true);
+        const contentWin = card.ownerDocument.defaultView;
+        const topWin = contentWin?.browsingContext?.top?.window ?? contentWin;
+        const msgWindow = topWin?.msgWindow ?? null;
+
+        msgHdr.folder.deleteMessages([msgHdr], msgWindow, false, false, null, true);
       } catch (err) {
         console.error("QuickDelete: Direct delete failed", err);
       }
@@ -190,7 +200,9 @@ ${threadCardSelector} .card-container {
 
     function ensureDeleteButtons(doc) {
       for (const row of doc.querySelectorAll(threadCardSelector)) {
-        const container = row.querySelector(".card-container") || row;
+        const container = row.querySelector(".thread-card-icon-info") ||
+          row.querySelector(".card-container") ||
+          row;
         if (!container.querySelector(`:scope > .${buttonClass}`)) {
           container.appendChild(createDeleteButton(doc));
         }
