@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Quick Card Delete Button",
-  "version": "2.7.4",
+  "version": "2.7.5",
   "description": "Deletes messages directly via an icon in the message list.",
   "author": "sim32101",
   "permissions": [
@@ -29,8 +29,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "quick-delete@your-domain.com",
-      "strict_min_version": "140.0",
-      "strict_max_version": "149.*"
+      "strict_min_version": "140.0"
     }
   }
 }
