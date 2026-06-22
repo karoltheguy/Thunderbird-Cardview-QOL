@@ -3,7 +3,7 @@
   "name": "Cardview QOL",
   "version": "2.8.0",
   "description": "Quality of life features in cardview",
-  "author": "karoltheguy",
+  "author": "Carol Ouellet",
   "permissions": [
     "messagesRead",
     "messagesMove",
@@ -19,9 +19,9 @@
     "browser_style": false
   },
   "icons": {
-    "32": "icon32.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "32": "CardViewQOL32.jpg",
+    "48": "CardViewQOL48.jpg",
+    "128": "CardViewQOL128.jpg"
   },
   "experiment_apis": {
     "cardModifier": {
