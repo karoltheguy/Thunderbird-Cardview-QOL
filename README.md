@@ -1,27 +1,56 @@
-﻿# Quick Card Delete for Thunderbird
+# Quick Card Features for Thunderbird
 
-Quick Card Delete adds a native-looking trash icon to Thunderbird's Cards View so you can delete messages directly from the message list.
+This add-on enhances Thunderbird's Cards View by allowing you to customize the appearance and behavior of various card elements, reducing visual clutter and improving your email workflow.
+
+## Features
+
+You can individually toggle the following features in the add-on's settings:
+
+### 🗑️ Hover-only Delete Button
+Keep your message list clean by hiding the delete button until you hover over a card. By default, Thunderbird always shows the trash icon; this feature makes it appear only when needed.
+
+![Placeholder: Screenshot showing delete button on card hover]()
+
+### ⭐ Hover-only Favorite Star
+Reduce visual noise by hiding the favorite (star) icon at rest. It will smoothly reveal itself when you hover over the message card.
+
+![Placeholder: Screenshot showing favorite star on card hover]()
+
+### 🔵 Read/Unread Indicator Bar
+Adds a distinct blue vertical bar on the left edge of unread messages for better visibility. You can click this bar directly to toggle the message's read/unread status.
+
+![Placeholder: Screenshot showing the blue read/unread vertical bar]()
+
+## Configuration
+
+Features can be individually enabled or disabled via the add-on settings page. To access it:
+1. Open Thunderbird `Settings` -> `Add-ons & Themes`.
+2. Go to the `Extensions` tab.
+3. Click the wrench icon (Options) next to the add-on name.
+
+![Placeholder: Screenshot of the Settings/Options page]()
 
 ## Installation
 
-The add-on may be available on Thunderbird Add-ons:
+> ⚠️ **Note:** Thunderbird is not currently reviewing new add-ons with Experiment APIs. Until ESR 153 is released, installation must be done manually via GitHub. Official store publication will resume once reviews reopen.
 
-[Quick Card Delete Button](https://addons.thunderbird.net/de/thunderbird/addon/quick-card-delete-button/)
+### Manual Installation
 
-⚠️ Thunderbird is not currently reviewing new add-ons with Experiment APIs. Until ESR 153 is released, installation must be done manually via GitHub. Official store publication will resume once reviews reopen.
+To install the add-on manually:
 
-If you want to install it manually:
-
-1. Download the `.xpi` file from this repository.
+1. Download the latest `.xpi` file from this repository.
 2. Open Thunderbird.
 3. Go to `Settings` -> `Add-ons & Themes`.
 4. Open the `Extensions` section.
-5. Click the gear menu in the top right.
+5. Click the gear ⚙️ menu in the top right.
 6. Choose `Install Add-on From File...`.
 7. Select the downloaded `.xpi` file.
 8. Confirm the installation.
-9. Restart Thunderbird if Thunderbird asks for it.
+9. Click on the wrench to open the settings page.
+
 
 ## Note
-- This add-on was largely vibe-coded and may still contain bugs or edge cases. Reports are very welcome.
-- I am also looking for long-term maintainers to help keep the add-on working over time.
+I started this project as a fork of the Quick Card Delete Button add-on which was mostly vibe-coded. 
+I have added new features and improved the existing ones, still using AI to help me do it though.
+
+

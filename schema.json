@@ -2,14 +2,42 @@
   {
     "namespace": "cardModifier",
     "functions": [
-        {
-          "name": "add",
-          "type": "function",
-          "async": true,
-          "parameters": [
-            { "name": "tabId", "type": "number" }
-          ]
-        }
+      {
+        "name": "add",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          { "name": "tabId", "type": "number" },
+          {
+            "name": "settings",
+            "type": "object",
+            "optional": true,
+            "properties": {
+              "showDeleteButton": { "type": "boolean", "optional": true },
+              "showFavoriteStar": { "type": "boolean", "optional": true },
+              "showReadIndicator": { "type": "boolean", "optional": true }
+            }
+          }
+        ]
+      },
+      {
+        "name": "reload",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          { "name": "tabId", "type": "number" },
+          {
+            "name": "settings",
+            "type": "object",
+            "optional": true,
+            "properties": {
+              "showDeleteButton": { "type": "boolean", "optional": true },
+              "showFavoriteStar": { "type": "boolean", "optional": true },
+              "showReadIndicator": { "type": "boolean", "optional": true }
+            }
+          }
+        ]
+      }
     ]
   }
 ]

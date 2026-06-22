@@ -1,15 +1,22 @@
 {
   "manifest_version": 2,
   "name": "Quick Card Delete Button",
-  "version": "2.7.5",
+  "version": "2.8.0",
   "description": "Deletes messages directly via an icon in the message list.",
   "author": "sim32101",
   "permissions": [
     "messagesRead",
-    "messagesMove"
+    "messagesMove",
+    "storage"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "options_ui": {
+    "page": "options.html",
+    "browser_style": false
   },
   "icons": {
     "32": "icon32.png",
@@ -20,8 +27,14 @@
     "cardModifier": {
       "schema": "schema.json",
       "parent": {
-        "scopes": ["addon_parent"],
-        "paths": [["cardModifier"]],
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "cardModifier"
+          ]
+        ],
         "script": "implementation.js"
       }
     }
