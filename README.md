@@ -8,8 +8,10 @@ This add-on enhances Thunderbird's Cards View by allowing you to customize the a
 
 You can individually toggle the following features in the add-on's settings:
 
-### 🗑️ Hover-only Delete Button
-Keep your message list clean by hiding the delete button until you hover over a card. By default, Thunderbird always shows the trash icon; this feature makes it appear only when needed.
+### 🗑️ Card Delete Button
+Adds a convenient delete button directly to each message card. To keep your message list clean, the button remains hidden until you hover over a card, reducing visual clutter while keeping the action easily accessible.
+
+<img width="131" height="68" alt="image" src="https://github.com/user-attachments/assets/0083da4d-69f4-40ec-88c5-05e24822dccc" />
 
 ### ⭐ Hover-only Favorite Star
 Reduce visual noise by hiding the favorite (star) icon at rest. It will smoothly reveal itself when you hover over the message card.
