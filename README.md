@@ -1,4 +1,4 @@
-<img width="462" height="213" alt="Cardview QOL" src="https://github.com/user-attachments/assets/d97af3e1-3d46-4cea-a0e5-89265462d030" />
+<img width="462" height="213" alt="Cardview QOL" src="https://github.com/karoltheguy/Thunderbird-Cardview-QOL/blob/eaba3aa439a4cbf876fdd20134778bc606e34776/CardviewQOL.png" />
 
 # Quick Card Features for Thunderbird
 
