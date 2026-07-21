@@ -30,7 +30,8 @@ Features can be individually enabled or disabled via the add-on settings page. T
 2. Go to the `Extensions` tab.
 3. Click the wrench icon (Options) next to the add-on name.
 
-![Placeholder: Screenshot of the Settings/Options page]()
+<img width="664" height="620" alt="image" src="https://github.com/user-attachments/assets/005fb89e-21da-4544-a71f-eb26e9b81192" />
+
 
 ## Installation
 
