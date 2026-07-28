@@ -1,0 +1,23 @@
+name: Test
+
+# Called by build.yml, which will not package the XPI unless this passes.
+on:
+  workflow_call:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate add-on
+        env:
+          RELEASE_TAG: "${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}"
+        run: node .github/scripts/validate.mjs
