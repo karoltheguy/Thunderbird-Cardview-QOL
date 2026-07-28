@@ -157,6 +157,42 @@
       outline-offset: 2px;
     }
 
+    /* Color indicator picker + hex field */
+    .color-wrapper {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 2px;
+    }
+
+    #color-indicator {
+      width: 32px;
+      height: 24px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    #color-indicator-hex {
+      width: 5.5em;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 6px;
+    }
+
+    #color-indicator:focus-visible,
+    #color-indicator-hex:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     .status-bar {
       font-size: 0.78rem;
       color: var(--text-muted);
@@ -228,6 +264,19 @@
           <span class="toggle-track"></span>
           <span class="toggle-thumb"></span>
         </label>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-info">
+        <label for="color-indicator">Read indicator color</label>
+        <span class="description">Color of the vertical bar shown on unread messages. Use the picker or type a
+          6-digit hex value.</span>
+      </div>
+      <div class="color-wrapper">
+        <input type="color" id="color-indicator" />
+        <input type="text" id="color-indicator-hex" maxlength="7" placeholder="#0078d4" spellcheck="false"
+          aria-label="Read indicator color hex value" />
       </div>
     </div>
   </div>

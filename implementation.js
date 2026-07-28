@@ -1,39 +1,39 @@
-var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
-  getAPI(context) {
-    const styleId = "styles-from-add-delete-button-addon";
-    const buttonClass = "qcd-delete-button";
-    const buttonIconClass = "qcd-delete-button-icon";
-    const readIndicatorClass = "qcd-read-indicator";
-    const hoveredClass = "qcd-hovered";
+const styleId = "styles-from-add-delete-button-addon";
+const buttonClass = "qcd-delete-button";
+const buttonIconClass = "qcd-delete-button-icon";
+const readIndicatorClass = "qcd-read-indicator";
+const hoveredClass = "qcd-hovered";
 
-    // JS-only selector — used in querySelectorAll/closest, NOT in CSS strings.
-    // Includes bare 'thread-card' tag for newer Thunderbird builds.
-    const jsThreadCardSelector = "thread-card, [is='thread-card'], tr.thread-card, li.thread-card";
+// JS-only selector — used in querySelectorAll/closest, NOT in CSS strings.
+// Includes bare 'thread-card' tag for newer Thunderbird builds.
+const jsThreadCardSelector = "thread-card, [is='thread-card'], tr.thread-card, li.thread-card";
 
-    // We do NOT use a thread-card parent selector in CSS for hover — it can't be
-    // reliably matched in Thunderbird's privileged document context.
-    // Instead we use a .qcd-hovered class toggled via JS mouseenter/mouseleave.
+// We do NOT use a thread-card parent selector in CSS for hover — it can't be
+// reliably matched in Thunderbird's privileged document context.
+// Instead we use a .qcd-hovered class toggled via JS mouseenter/mouseleave.
 
-    const defaultSettings = {
-      showDeleteButton: true,
-      showFavoriteStar: true,
-      showReadIndicator: true,
-    };
+const DEFAULT_READ_INDICATOR_COLOR = "#0078d4";
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
-    function addDynamicCSS(document, id, css) {
-      const existing = document.getElementById(id);
-      if (existing) {
-        existing.remove();
-      }
-      const style = document.createElement("style");
-      style.id = id;
-      style.textContent = css;
-      document.head.appendChild(style);
-    }
+// Guards against an arbitrary stored string breaking out of the generated
+// stylesheet. Falls back to the default for anything not a 6-digit hex.
+function normalizeHexColor(value) {
+  return typeof value === "string" && HEX_COLOR_PATTERN.test(value)
+    ? value
+    : DEFAULT_READ_INDICATOR_COLOR;
+}
 
-    function buildCSS(settings) {
-      const s = Object.assign({}, defaultSettings, settings);
-      let css = `
+const defaultSettings = {
+  showDeleteButton: true,
+  showFavoriteStar: true,
+  showReadIndicator: true,
+  readIndicatorColor: DEFAULT_READ_INDICATOR_COLOR,
+};
+
+function buildCSS(settings) {
+  const s = Object.assign({}, defaultSettings, settings);
+  const readIndicatorColor = normalizeHexColor(s.readIndicatorColor);
+  let css = `
 /* === Anchor containers that hold our injected elements (:has() — Gecko 121+) === */
 .card-container:has(> .${buttonClass}),
 .card-container:has(> .${readIndicatorClass}),
@@ -99,9 +99,9 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
 }
 `;
 
-      if (s.showDeleteButton) {
-        // Toggle ON  → hover-only: hidden at rest, visible on hover
-        css += `
+  if (s.showDeleteButton) {
+    // Toggle ON  → hover-only: hidden at rest, visible on hover
+    css += `
 /* === Delete button: hover-only mode === */
 .thread-card-icon-info > .${buttonClass},
 .card-container > .${buttonClass} {
@@ -116,9 +116,9 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
   pointer-events: auto !important;
 }
 `;
-      } else {
-        // Toggle OFF → always-show: matches original pre-hover behaviour
-        css += `
+  } else {
+    // Toggle OFF → always-show: matches original pre-hover behaviour
+    css += `
 /* === Delete button: always-visible mode === */
 .thread-card-icon-info > .${buttonClass},
 .card-container > .${buttonClass} {
@@ -126,13 +126,13 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
   pointer-events: auto !important;
 }
 `;
-      }
+  }
 
-      if (s.showFavoriteStar) {
-        // Real Thunderbird class confirmed from source (about3Pane.xhtml line 336):
-        // <button class="button-star tree-button-flag">
-        // The wrapper is .tree-view-row-flag
-        css += `
+  if (s.showFavoriteStar) {
+    // Real Thunderbird class confirmed from source (about3Pane.xhtml line 336):
+    // <button class="button-star tree-button-flag">
+    // The wrapper is .tree-view-row-flag
+    css += `
 /* === Favorite star: hover-only mode === */
 .tree-button-flag {
   opacity: 0 !important;
@@ -154,10 +154,10 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
   border-radius: 4px !important;
 }
 `;
-      }
+  }
 
-      if (s.showReadIndicator) {
-        css += `
+  if (s.showReadIndicator) {
+    css += `
 /* === Read/unread vertical bar === */
 .${readIndicatorClass} {
   position: absolute !important;
@@ -178,7 +178,7 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
   inset-block-start: 0 !important;
   inline-size: 4px !important;
   block-size: 100% !important;
-  background: #0078d4 !important;
+  background: ${readIndicatorColor} !important;
   border-radius: 0 2px 2px 0 !important;
   transition: opacity 0.2s ease, inline-size 0.2s ease !important;
 }
@@ -235,9 +235,22 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
   border-left-color: transparent !important;
 }
 `;
-      }
+  }
 
-      return css;
+  return css;
+}
+
+var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
+  getAPI(context) {
+    function addDynamicCSS(document, id, css) {
+      const existing = document.getElementById(id);
+      if (existing) {
+        existing.remove();
+      }
+      const style = document.createElement("style");
+      style.id = id;
+      style.textContent = css;
+      document.head.appendChild(style);
     }
 
     function unwrap(obj) {

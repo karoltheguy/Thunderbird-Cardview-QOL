@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Cardview QOL",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Quality of life features in cardview",
   "author": "Carol Ouellet",
   "permissions": [

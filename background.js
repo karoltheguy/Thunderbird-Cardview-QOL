@@ -2,6 +2,7 @@ const DEFAULT_SETTINGS = {
   showDeleteButton: true,
   showFavoriteStar: true,
   showReadIndicator: true,
+  readIndicatorColor: "#0078d4",
 };
 
 async function getSettings() {

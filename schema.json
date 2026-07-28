@@ -15,7 +15,8 @@
             "properties": {
               "showDeleteButton": { "type": "boolean", "optional": true },
               "showFavoriteStar": { "type": "boolean", "optional": true },
-              "showReadIndicator": { "type": "boolean", "optional": true }
+              "showReadIndicator": { "type": "boolean", "optional": true },
+              "readIndicatorColor": { "type": "string", "optional": true }
             }
           }
         ]
@@ -33,7 +34,8 @@
             "properties": {
               "showDeleteButton": { "type": "boolean", "optional": true },
               "showFavoriteStar": { "type": "boolean", "optional": true },
-              "showReadIndicator": { "type": "boolean", "optional": true }
+              "showReadIndicator": { "type": "boolean", "optional": true },
+              "readIndicatorColor": { "type": "string", "optional": true }
             }
           }
         ]
