@@ -158,11 +158,13 @@ check("setting controls have aria-describedby pointing at a real id", () => {
   }
 });
 
-check('status bar has role="status"', () => {
+// <output> carries an implicit role="status", and is preferred over spelling
+// the role out on a <div> because it is announced more reliably across devices.
+check("status bar is an <output> (implicit role=status)", () => {
   const tag = findTagById(optionsHtml, "status-bar");
   if (!tag) throw new Error("#status-bar element not found");
-  if (!/\brole=["']status["']/.test(tag)) {
-    throw new Error(`#status-bar is missing role="status": ${tag}`);
+  if (!/^<output\b/.test(tag)) {
+    throw new Error(`#status-bar is not an <output> element: ${tag}`);
   }
 });
 
@@ -177,6 +179,23 @@ check('toggle inputs have role="switch"', () => {
   if (missing.length > 0) {
     throw new Error(
       `toggle inputs missing role="switch": ${missing.join(", ")}`
+    );
+  }
+});
+
+// role="switch" makes aria-checked a required attribute; options.js keeps it in
+// sync with the checkbox from then on.
+check('toggle inputs declare an initial aria-checked', () => {
+  const toggleIds = ["toggle-delete", "toggle-star", "toggle-indicator"];
+  const missing = toggleIds.filter((id) => {
+    const tag = findTagById(optionsHtml, id);
+    if (!tag) return true;
+    return !/\baria-checked=["'](?:true|false)["']/.test(tag);
+  });
+
+  if (missing.length > 0) {
+    throw new Error(
+      `toggle inputs missing aria-checked: ${missing.join(", ")}`
     );
   }
 });
