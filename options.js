@@ -58,6 +58,9 @@ async function onToggleChange(event) {
 
 function flashSaved() {
   statusBar.textContent = "✓ Saved";
+  // A later successful save clears a stale load error, otherwise the two
+  // colours fight over the same element.
+  statusBar.classList.remove("error");
   statusBar.classList.add("saved");
   clearTimeout(statusBar._timer);
   statusBar._timer = setTimeout(() => {
@@ -102,4 +105,14 @@ colorIndicator.addEventListener("input", onColorPickerPreview);
 colorIndicator.addEventListener("change", onColorPickerCommit);
 colorIndicatorHex.addEventListener("change", onColorHexChange);
 
-loadSettings();
+// SonarQube javascript:S7785 suggests top-level await here, which is not
+// available: options.html loads this file with a plain <script src>, so it is
+// a classic script and top-level await would be a syntax error. Handling the
+// rejection explicitly gives the same benefit the rule is after, namely no
+// unobserved promise, and it also stops a storage failure from silently
+// leaving every control showing its default.
+loadSettings().catch((error) => {
+  console.error("CardviewQOL: loading settings failed", error);
+  statusBar.textContent = "Could not load settings";
+  statusBar.classList.add("error");
+}); // NOSONAR
