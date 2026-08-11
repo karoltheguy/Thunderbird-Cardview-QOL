@@ -16,7 +16,7 @@ async function getSettings() {
 
 async function init() {
   // Give the platform a short moment, then attach to existing windows
-  await new Promise(r => setTimeout(r, 250));
+  await new Promise((r) => setTimeout(r, 250));
   const settings = await getSettings();
   const tabs = await browser.tabs.query({ type: "mail" });
   for (const tabInfo of tabs) {
