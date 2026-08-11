@@ -1,3 +1,10 @@
+// Thunderbird runs this file inside a privileged sandbox and injects these.
+// Declaring them keeps ESLint (and so Codacy) from reporting them as undefined.
+/* global ExtensionCommon, Services */
+// cardModifier is read off the sandbox global by the add-on loader, so nothing
+// in this file references it. Without this it looks like dead code.
+/* exported cardModifier */
+
 const styleId = "styles-from-add-delete-button-addon";
 const buttonClass = "qcd-delete-button";
 const buttonIconClass = "qcd-delete-button-icon";
@@ -246,7 +253,6 @@ function buildCSS(settings) {
 // `var` at top level creates that property; `let`/`const` create a lexical
 // binding that is not a property of the global object, so the lookup would
 // return undefined and the experiment API would fail to load.
-// eslint-disable-next-line no-var
 var cardModifier = class extends ExtensionCommon.ExtensionAPI { // NOSONAR
   getAPI(context) {
     function addDynamicCSS(document, id, css) {
