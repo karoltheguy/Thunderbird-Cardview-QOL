@@ -29,11 +29,6 @@ async function init() {
 }
 
 // Run immediately on add-on startup.
-// SonarQube javascript:S7785 suggests top-level await here, which is not
-// available: this is an MV2 background script, and MV2 loads
-// background.scripts as classic scripts with no module system, so top-level
-// await would be a syntax error. Handling the rejection explicitly gives the
-// same benefit the rule is after, namely no unobserved promise.
 init().catch((error) => {
   console.error("CardviewQOL: startup failed", error);
 }); // NOSONAR
