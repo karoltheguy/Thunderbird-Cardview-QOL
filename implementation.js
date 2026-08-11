@@ -13,7 +13,7 @@ const jsThreadCardSelector = "thread-card, [is='thread-card'], tr.thread-card, l
 // Instead we use a .qcd-hovered class toggled via JS mouseenter/mouseleave.
 
 const DEFAULT_READ_INDICATOR_COLOR = "#0078d4";
-const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const HEX_COLOR_PATTERN = /^#[\da-fA-F]{6}$/;
 
 // Guards against an arbitrary stored string breaking out of the generated
 // stylesheet. Falls back to the default for anything not a 6-digit hex.
@@ -240,7 +240,7 @@ function buildCSS(settings) {
   return css;
 }
 
-var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
+var cardModifier = class extends ExtensionCommon.ExtensionAPI {
   getAPI(context) {
     function addDynamicCSS(document, id, css) {
       const existing = document.getElementById(id);
@@ -266,7 +266,7 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
         if (doc.querySelector(jsThreadCardSelector)) {
           return true;
         }
-        await new Promise(r => doc.defaultView.setTimeout(r, delay));
+        await new Promise((r) => doc.defaultView.setTimeout(r, delay));
       }
       return false;
     }
@@ -363,9 +363,9 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
       icon.setAttribute("aria-hidden", "true");
       button.appendChild(icon);
       button.addEventListener("click", event => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        deleteCardFromButton(button);
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          deleteCardFromButton(button);
       }, true);
       return button;
     }
@@ -377,18 +377,18 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
       indicator.addEventListener("click", event => {
         event.preventDefault();
         event.stopImmediatePropagation();
-        const card = indicator.closest("tr, li, thread-card");
-        if (!card) return;
-        const msgHdr = getMessageHeader(card);
-        if (!msgHdr) {
-          console.error("QuickReadToggle: No message header found.");
-          return;
-        }
-        try {
-          msgHdr.markRead(!msgHdr.isRead);
-          indicator.setAttribute("data-read", String(msgHdr.isRead));
-        } catch (err) {
-          console.error("QuickReadToggle: Failed to toggle read state", err);
+          const card = indicator.closest("tr, li, thread-card");
+          if (!card) return;
+          const msgHdr = getMessageHeader(card);
+          if (!msgHdr) {
+            console.error("QuickReadToggle: No message header found.");
+            return;
+          }
+          try {
+            msgHdr.markRead(!msgHdr.isRead);
+            indicator.setAttribute("data-read", String(msgHdr.isRead));
+          } catch (err) {
+            console.error("QuickReadToggle: Failed to toggle read state", err);
         }
       }, true);
 
@@ -499,7 +499,7 @@ var cardModifier = class extends (ExtensionCommon.ExtensionAPI) {
       if (doc._quickDeleteMouseDownHandler) {
         doc.removeEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
       }
-      doc._quickDeleteMouseDownHandler = e => {
+      doc._quickDeleteMouseDownHandler = (e) => {
         const button = e.target.closest(`.${buttonClass}`);
         if (!button) return;
         e.preventDefault();

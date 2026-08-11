@@ -5,7 +5,7 @@ const DEFAULT_SETTINGS = {
   readIndicatorColor: "#0078d4",
 };
 
-const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const HEX_COLOR_PATTERN = /^#[\da-fA-F]{6}$/;
 
 // Guards against an arbitrary stored string breaking out of the generated
 // stylesheet. Falls back to the default for anything not a 6-digit hex.
