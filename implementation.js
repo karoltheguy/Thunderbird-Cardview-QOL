@@ -31,7 +31,7 @@ const defaultSettings = {
 };
 
 function buildCSS(settings) {
-  const s = Object.assign({}, defaultSettings, settings);
+  const s = { ...defaultSettings, ...settings };
   const readIndicatorColor = normalizeHexColor(s.readIndicatorColor);
   let css = `
 /* === Anchor containers that hold our injected elements (:has() — Gecko 121+) === */
@@ -240,7 +240,14 @@ function buildCSS(settings) {
   return css;
 }
 
-var cardModifier = class extends ExtensionCommon.ExtensionAPI {
+// `var` is required here and must not be changed to let/const (SonarQube
+// javascript:S3504). Thunderbird executes this file in a sandbox global and
+// then retrieves the API by property lookup, i.e. `global["cardModifier"]`.
+// `var` at top level creates that property; `let`/`const` create a lexical
+// binding that is not a property of the global object, so the lookup would
+// return undefined and the experiment API would fail to load.
+// eslint-disable-next-line no-var
+var cardModifier = class extends ExtensionCommon.ExtensionAPI { // NOSONAR
   getAPI(context) {
     function addDynamicCSS(document, id, css) {
       const existing = document.getElementById(id);
@@ -255,7 +262,7 @@ var cardModifier = class extends ExtensionCommon.ExtensionAPI {
 
     function unwrap(obj) {
       try {
-        return obj && obj.wrappedJSObject ? obj.wrappedJSObject : obj;
+        return obj?.wrappedJSObject ? obj.wrappedJSObject : obj;
       } catch (err) {
         return obj;
       }
@@ -290,7 +297,7 @@ var cardModifier = class extends ExtensionCommon.ExtensionAPI {
         return null;
       }
 
-      const viewIndex = parseInt(ariaIndex, 10) - 1;
+      const viewIndex = Number.parseInt(ariaIndex, 10) - 1;
       return viewIndex >= 0 ? viewIndex : null;
     }
 
@@ -386,7 +393,7 @@ var cardModifier = class extends ExtensionCommon.ExtensionAPI {
           }
           try {
             msgHdr.markRead(!msgHdr.isRead);
-            indicator.setAttribute("data-read", String(msgHdr.isRead));
+            indicator.dataset.read = String(msgHdr.isRead);
           } catch (err) {
             console.error("QuickReadToggle: Failed to toggle read state", err);
         }
@@ -428,18 +435,18 @@ var cardModifier = class extends ExtensionCommon.ExtensionAPI {
       if (existing) {
         const msgHdr = getMessageHeader(row);
         if (msgHdr) {
-          existing.setAttribute("data-read", String(msgHdr.isRead));
+          existing.dataset.read = String(msgHdr.isRead);
         }
         return;
       }
       const indicator = createReadIndicator(doc);
       const msgHdr = getMessageHeader(row);
-      indicator.setAttribute("data-read", msgHdr ? String(msgHdr.isRead) : "true");
+      indicator.dataset.read = msgHdr ? String(msgHdr.isRead) : "true";
       container.appendChild(indicator);
     }
 
     function ensureElements(doc, settings) {
-      const s = Object.assign({}, defaultSettings, settings);
+      const s = { ...defaultSettings, ...settings };
       for (const row of doc.querySelectorAll(jsThreadCardSelector)) {
         // Wire hover listeners whenever any hover-dependent feature is active.
         if (s.showDeleteButton || s.showFavoriteStar || s.showReadIndicator) {
