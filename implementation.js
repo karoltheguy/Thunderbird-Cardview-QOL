@@ -1,15 +1,13 @@
-// Thunderbird runs this file inside a privileged sandbox and injects these.
-// Declaring them keeps ESLint (and so Codacy) from reporting them as undefined.
-/* global ExtensionCommon, Services */
-// cardModifier is read off the sandbox global by the add-on loader, so nothing
-// in this file references it. Without this it looks like dead code.
-/* exported cardModifier */
-
 const styleId = "styles-from-add-delete-button-addon";
 const buttonClass = "qcd-delete-button";
 const buttonIconClass = "qcd-delete-button-icon";
 const readIndicatorClass = "qcd-read-indicator";
 const hoveredClass = "qcd-hovered";
+
+// Thunderbird runs this file inside a privileged sandbox and injects these.
+// Declaring them keeps ESLint (and so Codacy) from reporting them as
+// undefined. The directive is file-scoped, so its position here is fine.
+/* global ExtensionCommon, Services */
 
 // JS-only selector — used in querySelectorAll/closest, NOT in CSS strings.
 // Includes bare 'thread-card' tag for newer Thunderbird builds.
@@ -253,6 +251,10 @@ function buildCSS(settings) {
 // `var` at top level creates that property; `let`/`const` create a lexical
 // binding that is not a property of the global object, so the lookup would
 // return undefined and the experiment API would fail to load.
+//
+// It is also unreferenced on purpose: the add-on loader reads it back off the
+// sandbox global, so no call site exists in this file for ESLint to find.
+// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 var cardModifier = class extends ExtensionCommon.ExtensionAPI { // NOSONAR
   getAPI(context) {
     function addDynamicCSS(document, id, css) {
