@@ -227,61 +227,61 @@
     <div class="setting-row">
       <div class="setting-info">
         <label for="toggle-delete">Delete button: hover-only</label>
-        <span class="description">ON: trash icon appears only when hovering a card. OFF: always visible.</span>
+        <span class="description" id="desc-delete">ON: trash icon appears only when hovering a card. OFF: always visible.</span>
       </div>
-      <div class="toggle-wrapper">
-        <input class="toggle-input" type="checkbox" id="toggle-delete" data-key="showDeleteButton" />
-        <label class="toggle-label" for="toggle-delete" aria-label="Toggle delete button">
+      <label class="toggle-wrapper">
+        <input class="toggle-input" type="checkbox" id="toggle-delete" role="switch" aria-describedby="desc-delete" data-key="showDeleteButton" />
+        <span class="toggle-label">
           <span class="toggle-track"></span>
           <span class="toggle-thumb"></span>
-        </label>
-      </div>
+        </span>
+      </label>
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
         <label for="toggle-star">Favorite star</label>
-        <span class="description">Hide the star icon at rest and only reveal it when hovering over a card.</span>
+        <span class="description" id="desc-star">Hide the star icon at rest and only reveal it when hovering over a card.</span>
       </div>
-      <div class="toggle-wrapper">
-        <input class="toggle-input" type="checkbox" id="toggle-star" data-key="showFavoriteStar" />
-        <label class="toggle-label" for="toggle-star" aria-label="Toggle favorite star hover">
+      <label class="toggle-wrapper">
+        <input class="toggle-input" type="checkbox" id="toggle-star" role="switch" aria-describedby="desc-star" data-key="showFavoriteStar" />
+        <span class="toggle-label">
           <span class="toggle-track"></span>
           <span class="toggle-thumb"></span>
-        </label>
-      </div>
+        </span>
+      </label>
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
         <label for="toggle-indicator">Read/unread bar</label>
-        <span class="description">Show a blue vertical bar on the left of unread messages. Click it to toggle read
+        <span class="description" id="desc-indicator">Show a blue vertical bar on the left of unread messages. Click it to toggle read
           status.</span>
       </div>
-      <div class="toggle-wrapper">
-        <input class="toggle-input" type="checkbox" id="toggle-indicator" data-key="showReadIndicator" />
-        <label class="toggle-label" for="toggle-indicator" aria-label="Toggle read/unread indicator">
+      <label class="toggle-wrapper">
+        <input class="toggle-input" type="checkbox" id="toggle-indicator" role="switch" aria-describedby="desc-indicator" data-key="showReadIndicator" />
+        <span class="toggle-label">
           <span class="toggle-track"></span>
           <span class="toggle-thumb"></span>
-        </label>
-      </div>
+        </span>
+      </label>
     </div>
 
     <div class="setting-row">
       <div class="setting-info">
         <label for="color-indicator">Read indicator color</label>
-        <span class="description">Color of the vertical bar shown on unread messages. Use the picker or type a
+        <span class="description" id="desc-color">Color of the vertical bar shown on unread messages. Use the picker or type a
           6-digit hex value.</span>
       </div>
       <div class="color-wrapper">
-        <input type="color" id="color-indicator" />
+        <input type="color" id="color-indicator" aria-describedby="desc-color" />
         <input type="text" id="color-indicator-hex" maxlength="7" placeholder="#0078d4" spellcheck="false"
           aria-label="Read indicator color hex value" />
       </div>
     </div>
   </div>
 
-  <div class="status-bar" id="status-bar"></div>
+  <div class="status-bar" id="status-bar" role="status"></div>
   <p class="version" id="version-label"></p>
 
   <script src="options.js"></script>
