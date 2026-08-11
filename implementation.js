@@ -245,6 +245,288 @@ function buildCSS(settings) {
   return css;
 }
 
+function addDynamicCSS(document, id, css) {
+  const existing = document.getElementById(id);
+  if (existing) {
+    existing.remove();
+  }
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
+function unwrap(obj) {
+  try {
+    return obj?.wrappedJSObject ? obj.wrappedJSObject : obj;
+  } catch (err) {
+    return obj;
+  }
+}
+
+async function waitForThreadCards(doc, retries = 10, delay = 200) {
+  for (let i = 0; i < retries; i++) {
+    if (doc.querySelector(jsThreadCardSelector)) {
+      return true;
+    }
+    await new Promise((r) => doc.defaultView.setTimeout(r, delay));
+  }
+  return false;
+}
+
+function getViewIndex(card, rawCard) {
+  const candidateViewIndices = [
+    rawCard?._index,
+    rawCard?.index,
+    card._index,
+    card.index,
+  ];
+
+  for (const candidate of candidateViewIndices) {
+    if (Number.isInteger(candidate) && candidate >= 0) {
+      return candidate;
+    }
+  }
+
+  const ariaIndex = card.getAttribute("aria-rowindex") || card.getAttribute("aria-posinset");
+  if (!ariaIndex) {
+    return null;
+  }
+
+  const viewIndex = Number.parseInt(ariaIndex, 10) - 1;
+  return viewIndex >= 0 ? viewIndex : null;
+}
+
+function getMessageHeader(card) {
+  const contentWin = card.ownerDocument.defaultView;
+  const rawCard = unwrap(card);
+  const dbView = unwrap(contentWin?.gDBView);
+  const viewIndex = getViewIndex(card, rawCard);
+
+  if (dbView && viewIndex !== null && typeof dbView.getMsgHdrAt === "function") {
+    try {
+      const msgHdr = dbView.getMsgHdrAt(viewIndex);
+      if (msgHdr) {
+        return msgHdr;
+      }
+    } catch (err) {
+      console.warn("QuickDelete: gDBView lookup failed", err);
+    }
+  }
+
+  try {
+    const fallbackMsg =
+      rawCard.message ||
+      rawCard.messageKey ||
+      rawCard.messageDisplayItem?.message ||
+      rawCard._instance?.message ||
+      rawCard._instance?.messageDisplayItem?.message;
+
+    if (fallbackMsg && typeof fallbackMsg !== "number") {
+      return fallbackMsg;
+    }
+  } catch (err) {
+    console.warn("QuickDelete: Property access failed", err);
+  }
+
+  return null;
+}
+
+function deleteCardFromButton(button) {
+  const card = button.closest("tr, li, thread-card");
+  if (!card) {
+    return;
+  }
+
+  const msgHdr = getMessageHeader(card);
+  if (!msgHdr?.folder?.deleteMessages) {
+    console.error("QuickDelete: No message header found for clicked card.");
+    return;
+  }
+
+  try {
+    const contentWin = card.ownerDocument.defaultView;
+    const topWin = contentWin?.browsingContext?.top?.window ?? contentWin;
+    const msgWindow = topWin?.msgWindow ?? null;
+
+    msgHdr.folder.deleteMessages([msgHdr], msgWindow, false, true, null, true);
+  } catch (err) {
+    console.error("QuickDelete: Direct delete failed", err);
+  }
+}
+
+function createDeleteButton(doc) {
+  const button = doc.createElement("button");
+  button.className = buttonClass;
+  button.type = "button";
+  button.title = "Delete";
+  button.setAttribute("aria-label", "Delete");
+  const icon = doc.createElement("span");
+  icon.className = buttonIconClass;
+  icon.setAttribute("aria-hidden", "true");
+  button.appendChild(icon);
+  button.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      deleteCardFromButton(button);
+  }, true);
+  return button;
+}
+
+function createReadIndicator(doc) {
+  const indicator = doc.createElement("span");
+  indicator.className = readIndicatorClass;
+  indicator.setAttribute("aria-hidden", "true");
+  indicator.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+      const card = indicator.closest("tr, li, thread-card");
+      if (!card) return;
+      const msgHdr = getMessageHeader(card);
+      if (!msgHdr) {
+        console.error("QuickReadToggle: No message header found.");
+        return;
+      }
+      try {
+        msgHdr.markRead(!msgHdr.isRead);
+        indicator.dataset.read = String(msgHdr.isRead);
+      } catch (err) {
+        console.error("QuickReadToggle: Failed to toggle read state", err);
+    }
+  }, true);
+
+  // Prevent double-click from bubbling up and opening the email
+  indicator.addEventListener("dblclick", event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+
+  return indicator;
+}
+
+const hoveredWired = new WeakSet();
+
+function wireHoverListeners(row) {
+  if (hoveredWired.has(row)) return;
+  hoveredWired.add(row);
+  row.addEventListener("mouseenter", () => row.classList.add(hoveredClass));
+  row.addEventListener("mouseleave", () => row.classList.remove(hoveredClass));
+}
+
+function ensureDeleteButton(row, doc) {
+  const container = row.querySelector(".thread-card-icon-info") ||
+    row.querySelector(".card-container") ||
+    row;
+  if (!container.querySelector(`:scope > .${buttonClass}`)) {
+    container.appendChild(createDeleteButton(doc));
+  }
+}
+
+function ensureReadIndicator(row, doc) {
+  const container = row.querySelector(".card-container");
+  if (!container) {
+    return;
+  }
+  const existing = container.querySelector(`:scope > .${readIndicatorClass}`);
+  if (existing) {
+    const msgHdr = getMessageHeader(row);
+    if (msgHdr) {
+      existing.dataset.read = String(msgHdr.isRead);
+    }
+    return;
+  }
+  const indicator = createReadIndicator(doc);
+  const msgHdr = getMessageHeader(row);
+  indicator.dataset.read = msgHdr ? String(msgHdr.isRead) : "true";
+  container.appendChild(indicator);
+}
+
+function ensureElements(doc, settings) {
+  const s = { ...defaultSettings, ...settings };
+  for (const row of doc.querySelectorAll(jsThreadCardSelector)) {
+    // Wire hover listeners whenever any hover-dependent feature is active.
+    if (s.showDeleteButton || s.showFavoriteStar || s.showReadIndicator) {
+      wireHoverListeners(row);
+    }
+    // Delete button is always injected; the toggle controls visibility (hover-only vs always-show).
+    ensureDeleteButton(row, doc);
+    if (s.showReadIndicator) {
+      ensureReadIndicator(row, doc);
+    }
+  }
+}
+
+function removeElements(doc) {
+  for (const button of doc.querySelectorAll(`.${buttonClass}`)) {
+    button.remove();
+  }
+  for (const indicator of doc.querySelectorAll(`.${readIndicatorClass}`)) {
+    indicator.remove();
+  }
+  for (const row of doc.querySelectorAll(`.${hoveredClass}`)) {
+    row.classList.remove(hoveredClass);
+  }
+}
+
+function observeThreadCards(doc, settings) {
+  if (doc._qcdButtonObserver) {
+    doc._qcdButtonObserver.disconnect();
+    delete doc._qcdButtonObserver;
+  }
+
+  let scheduled = false;
+  const scheduleEnsureElements = () => {
+    if (scheduled) return;
+    scheduled = true;
+    doc.defaultView.requestAnimationFrame(() => {
+      scheduled = false;
+      ensureElements(doc, settings);
+    });
+  };
+
+  doc._qcdButtonObserver = new doc.defaultView.MutationObserver(() => {
+    scheduleEnsureElements();
+  });
+  doc._qcdButtonObserver.observe(doc.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+function applyToDoc(doc, settings) {
+  addDynamicCSS(doc, styleId, buildCSS(settings));
+  removeElements(doc);
+  ensureElements(doc, settings);
+  observeThreadCards(doc, settings);
+
+  if (doc._quickDeleteMouseDownHandler) {
+    doc.removeEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
+  }
+  doc._quickDeleteMouseDownHandler = (e) => {
+    const button = e.target.closest(`.${buttonClass}`);
+    if (!button) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  };
+  doc.addEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
+}
+
+function getAllMailDocs() {
+  const docs = [];
+  try {
+    const windows = Array.from(Services.wm.getEnumerator("mail:3pane"));
+    for (const window of windows) {
+      for (const nativeTab of window.gTabmail.tabInfo.filter(t => t.mode.name === "mail3PaneTab")) {
+        const doc = nativeTab?.chromeBrowser?.contentDocument;
+        if (doc) docs.push(doc);
+      }
+    }
+  } catch (err) {
+    console.error("QCD: Error enumerating windows", err);
+  }
+  return docs;
+}
+
 // `var` is required here and must not be changed to let/const (SonarQube
 // javascript:S3504). Thunderbird executes this file in a sandbox global and
 // then retrieves the API by property lookup, i.e. `global["cardModifier"]`.
@@ -257,288 +539,6 @@ function buildCSS(settings) {
 // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 var cardModifier = class extends ExtensionCommon.ExtensionAPI { // NOSONAR
   getAPI(context) {
-    function addDynamicCSS(document, id, css) {
-      const existing = document.getElementById(id);
-      if (existing) {
-        existing.remove();
-      }
-      const style = document.createElement("style");
-      style.id = id;
-      style.textContent = css;
-      document.head.appendChild(style);
-    }
-
-    function unwrap(obj) {
-      try {
-        return obj?.wrappedJSObject ? obj.wrappedJSObject : obj;
-      } catch (err) {
-        return obj;
-      }
-    }
-
-    async function waitForThreadCards(doc, retries = 10, delay = 200) {
-      for (let i = 0; i < retries; i++) {
-        if (doc.querySelector(jsThreadCardSelector)) {
-          return true;
-        }
-        await new Promise((r) => doc.defaultView.setTimeout(r, delay));
-      }
-      return false;
-    }
-
-    function getViewIndex(card, rawCard) {
-      const candidateViewIndices = [
-        rawCard?._index,
-        rawCard?.index,
-        card._index,
-        card.index,
-      ];
-
-      for (const candidate of candidateViewIndices) {
-        if (Number.isInteger(candidate) && candidate >= 0) {
-          return candidate;
-        }
-      }
-
-      const ariaIndex = card.getAttribute("aria-rowindex") || card.getAttribute("aria-posinset");
-      if (!ariaIndex) {
-        return null;
-      }
-
-      const viewIndex = Number.parseInt(ariaIndex, 10) - 1;
-      return viewIndex >= 0 ? viewIndex : null;
-    }
-
-    function getMessageHeader(card) {
-      const contentWin = card.ownerDocument.defaultView;
-      const rawCard = unwrap(card);
-      const dbView = unwrap(contentWin?.gDBView);
-      const viewIndex = getViewIndex(card, rawCard);
-
-      if (dbView && viewIndex !== null && typeof dbView.getMsgHdrAt === "function") {
-        try {
-          const msgHdr = dbView.getMsgHdrAt(viewIndex);
-          if (msgHdr) {
-            return msgHdr;
-          }
-        } catch (err) {
-          console.warn("QuickDelete: gDBView lookup failed", err);
-        }
-      }
-
-      try {
-        const fallbackMsg =
-          rawCard.message ||
-          rawCard.messageKey ||
-          rawCard.messageDisplayItem?.message ||
-          rawCard._instance?.message ||
-          rawCard._instance?.messageDisplayItem?.message;
-
-        if (fallbackMsg && typeof fallbackMsg !== "number") {
-          return fallbackMsg;
-        }
-      } catch (err) {
-        console.warn("QuickDelete: Property access failed", err);
-      }
-
-      return null;
-    }
-
-    function deleteCardFromButton(button) {
-      const card = button.closest("tr, li, thread-card");
-      if (!card) {
-        return;
-      }
-
-      const msgHdr = getMessageHeader(card);
-      if (!msgHdr?.folder?.deleteMessages) {
-        console.error("QuickDelete: No message header found for clicked card.");
-        return;
-      }
-
-      try {
-        const contentWin = card.ownerDocument.defaultView;
-        const topWin = contentWin?.browsingContext?.top?.window ?? contentWin;
-        const msgWindow = topWin?.msgWindow ?? null;
-
-        msgHdr.folder.deleteMessages([msgHdr], msgWindow, false, true, null, true);
-      } catch (err) {
-        console.error("QuickDelete: Direct delete failed", err);
-      }
-    }
-
-    function createDeleteButton(doc) {
-      const button = doc.createElement("button");
-      button.className = buttonClass;
-      button.type = "button";
-      button.title = "Delete";
-      button.setAttribute("aria-label", "Delete");
-      const icon = doc.createElement("span");
-      icon.className = buttonIconClass;
-      icon.setAttribute("aria-hidden", "true");
-      button.appendChild(icon);
-      button.addEventListener("click", event => {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          deleteCardFromButton(button);
-      }, true);
-      return button;
-    }
-
-    function createReadIndicator(doc) {
-      const indicator = doc.createElement("span");
-      indicator.className = readIndicatorClass;
-      indicator.setAttribute("aria-hidden", "true");
-      indicator.addEventListener("click", event => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-          const card = indicator.closest("tr, li, thread-card");
-          if (!card) return;
-          const msgHdr = getMessageHeader(card);
-          if (!msgHdr) {
-            console.error("QuickReadToggle: No message header found.");
-            return;
-          }
-          try {
-            msgHdr.markRead(!msgHdr.isRead);
-            indicator.dataset.read = String(msgHdr.isRead);
-          } catch (err) {
-            console.error("QuickReadToggle: Failed to toggle read state", err);
-        }
-      }, true);
-
-      // Prevent double-click from bubbling up and opening the email
-      indicator.addEventListener("dblclick", event => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }, true);
-
-      return indicator;
-    }
-
-    const hoveredWired = new WeakSet();
-
-    function wireHoverListeners(row) {
-      if (hoveredWired.has(row)) return;
-      hoveredWired.add(row);
-      row.addEventListener("mouseenter", () => row.classList.add(hoveredClass));
-      row.addEventListener("mouseleave", () => row.classList.remove(hoveredClass));
-    }
-
-    function ensureDeleteButton(row, doc) {
-      const container = row.querySelector(".thread-card-icon-info") ||
-        row.querySelector(".card-container") ||
-        row;
-      if (!container.querySelector(`:scope > .${buttonClass}`)) {
-        container.appendChild(createDeleteButton(doc));
-      }
-    }
-
-    function ensureReadIndicator(row, doc) {
-      const container = row.querySelector(".card-container");
-      if (!container) {
-        return;
-      }
-      const existing = container.querySelector(`:scope > .${readIndicatorClass}`);
-      if (existing) {
-        const msgHdr = getMessageHeader(row);
-        if (msgHdr) {
-          existing.dataset.read = String(msgHdr.isRead);
-        }
-        return;
-      }
-      const indicator = createReadIndicator(doc);
-      const msgHdr = getMessageHeader(row);
-      indicator.dataset.read = msgHdr ? String(msgHdr.isRead) : "true";
-      container.appendChild(indicator);
-    }
-
-    function ensureElements(doc, settings) {
-      const s = { ...defaultSettings, ...settings };
-      for (const row of doc.querySelectorAll(jsThreadCardSelector)) {
-        // Wire hover listeners whenever any hover-dependent feature is active.
-        if (s.showDeleteButton || s.showFavoriteStar || s.showReadIndicator) {
-          wireHoverListeners(row);
-        }
-        // Delete button is always injected; the toggle controls visibility (hover-only vs always-show).
-        ensureDeleteButton(row, doc);
-        if (s.showReadIndicator) {
-          ensureReadIndicator(row, doc);
-        }
-      }
-    }
-
-    function removeElements(doc) {
-      for (const button of doc.querySelectorAll(`.${buttonClass}`)) {
-        button.remove();
-      }
-      for (const indicator of doc.querySelectorAll(`.${readIndicatorClass}`)) {
-        indicator.remove();
-      }
-      for (const row of doc.querySelectorAll(`.${hoveredClass}`)) {
-        row.classList.remove(hoveredClass);
-      }
-    }
-
-    function observeThreadCards(doc, settings) {
-      if (doc._qcdButtonObserver) {
-        doc._qcdButtonObserver.disconnect();
-        delete doc._qcdButtonObserver;
-      }
-
-      let scheduled = false;
-      const scheduleEnsureElements = () => {
-        if (scheduled) return;
-        scheduled = true;
-        doc.defaultView.requestAnimationFrame(() => {
-          scheduled = false;
-          ensureElements(doc, settings);
-        });
-      };
-
-      doc._qcdButtonObserver = new doc.defaultView.MutationObserver(() => {
-        scheduleEnsureElements();
-      });
-      doc._qcdButtonObserver.observe(doc.body, {
-        childList: true,
-        subtree: true,
-      });
-    }
-
-    function applyToDoc(doc, settings) {
-      addDynamicCSS(doc, styleId, buildCSS(settings));
-      removeElements(doc);
-      ensureElements(doc, settings);
-      observeThreadCards(doc, settings);
-
-      if (doc._quickDeleteMouseDownHandler) {
-        doc.removeEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
-      }
-      doc._quickDeleteMouseDownHandler = (e) => {
-        const button = e.target.closest(`.${buttonClass}`);
-        if (!button) return;
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      };
-      doc.addEventListener("mousedown", doc._quickDeleteMouseDownHandler, true);
-    }
-
-    function getAllMailDocs() {
-      const docs = [];
-      try {
-        const windows = Array.from(Services.wm.getEnumerator("mail:3pane"));
-        for (const window of windows) {
-          for (const nativeTab of window.gTabmail.tabInfo.filter(t => t.mode.name === "mail3PaneTab")) {
-            const doc = nativeTab?.chromeBrowser?.contentDocument;
-            if (doc) docs.push(doc);
-          }
-        }
-      } catch (err) {
-        console.error("QCD: Error enumerating windows", err);
-      }
-      return docs;
-    }
-
     context.callOnClose({
       close() {
         for (const doc of getAllMailDocs()) {
