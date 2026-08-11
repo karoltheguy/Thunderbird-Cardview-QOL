@@ -1,0 +1,33 @@
+# Build / packaging output
+*.xpi
+*.zip
+dist/
+build/
+web-ext-artifacts/
+
+# Node tooling (linters, web-ext, etc.)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+
+# Local tool state
+.claude/
+.impeccable/
+PRODUCT.md
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment / secrets
+.env
+.env.local
