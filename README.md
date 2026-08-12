@@ -59,6 +59,22 @@ To install the add-on manually:
 8. Confirm the installation.
 9. Click on the wrench to open the settings page.
 
+## Contributing
+
+Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/):
+`<type>(<optional scope>): <description>`, where `type` is one of `build`, `chore`,
+`ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style` or `test`.
+
+After cloning, enable the hook that checks this as you commit:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+This is a one-time, per-clone step — git will not pick the directory up on its own. A
+pull request whose commits do not match is blocked from merging either way, so running
+the hook just moves that feedback from the pull request back to `git commit`.
+
 ## Note
 
 I started this project as a fork of the Quick Card Delete Button add-on which was mostly vibe-coded.
