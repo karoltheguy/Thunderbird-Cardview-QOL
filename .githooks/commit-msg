@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# Rejects a commit whose subject line does not follow the project's format, while the
+# message is still in the editor and costs nothing to fix. This is the fast feedback
+# path, not the enforcement one: `--no-verify` skips it, and commits authored in the
+# GitHub web UI never reach it. The Commit messages workflow is the backstop for both.
+#
+# Enabled by:  git config core.hooksPath .githooks
+
+set -euo pipefail
+
+# shellcheck source=.githooks/lib/format.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/format.sh"
+
+# The first line that is neither blank nor one of git's own comment lines.
+subject=$(awk 'NF && $0 !~ /^#/ { print; exit }' "$1")
+
+if [ -z "$subject" ]; then
+  # An empty message aborts the commit on git's side anyway.
+  exit 0
+fi
+
+if subject_is_valid "$subject"; then
+  exit 0
+fi
+
+echo "ERROR: invalid commit message format" >&2
+echo >&2
+echo "  ${subject}" >&2
+echo >&2
+commit_msg_help >&2
+exit 1

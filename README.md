@@ -1,3 +1,6 @@
+<!-- markdownlint-disable MD033 -->
+<!-- Images use raw <img> so they can carry width/height, which Markdown
+     image syntax cannot express. -->
 <img width="462" height="462" alt="Cardview QOL" src="https://github.com/karoltheguy/Thunderbird-Cardview-QOL/blob/eaba3aa439a4cbf876fdd20134778bc606e34776/CardviewQOL.png" />
 
 # Cardview QOL
@@ -11,16 +14,19 @@ This add-on enhances Thunderbird's Cards View by allowing you to customize the a
 You can individually toggle the following features in the add-on's settings:
 
 ### 🗑️ Card Delete Button
+
 Adds a convenient delete button directly to each message card. To keep your message list clean, the button remains hidden until you hover over a card, reducing visual clutter while keeping the action easily accessible.
 
 <img width="131" height="68" alt="image" src="https://github.com/user-attachments/assets/0083da4d-69f4-40ec-88c5-05e24822dccc" />
 
 ### ⭐ Hover-only Favorite Star
+
 Reduce visual noise by hiding the favorite (star) icon at rest. It will smoothly reveal itself when you hover over the message card.
 
 <img width="426" height="240" alt="favorite toggle" src="https://github.com/user-attachments/assets/84997fe9-a550-481d-b0e3-4761ab7c411a" />
 
 ### 🔵 Read/Unread Indicator Bar
+
 Adds a distinct blue vertical bar on the left edge of unread messages for better visibility. You can click this bar directly to toggle the message's read/unread status.
 
 <img width="426" height="240" alt="unread toggle" src="https://github.com/user-attachments/assets/ed47a494-718a-4382-8490-049f2d99e609" />
@@ -28,12 +34,12 @@ Adds a distinct blue vertical bar on the left edge of unread messages for better
 ## Configuration
 
 Features can be individually enabled or disabled via the add-on settings page. To access it:
+
 1. Open Thunderbird `Settings` -> `Add-ons & Themes`.
 2. Go to the `Extensions` tab.
 3. Click the wrench icon (Options) next to the add-on name.
 
 <img width="664" height="620" alt="image" src="https://github.com/user-attachments/assets/005fb89e-21da-4544-a71f-eb26e9b81192" />
-
 
 ## Installation
 
@@ -53,9 +59,25 @@ To install the add-on manually:
 8. Confirm the installation.
 9. Click on the wrench to open the settings page.
 
+## Contributing
+
+Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/):
+`<type>(<optional scope>): <description>`, where `type` is one of `build`, `chore`,
+`ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style` or `test`.
+
+After cloning, enable the hook that checks this as you commit:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+This is a one-time, per-clone step — git will not pick the directory up on its own. A
+pull request whose commits do not match is blocked from merging either way, so running
+the hook just moves that feedback from the pull request back to `git commit`.
 
 ## Note
-I started this project as a fork of the Quick Card Delete Button add-on which was mostly vibe-coded. 
+
+I started this project as a fork of the Quick Card Delete Button add-on which was mostly vibe-coded.
 I have added new features and improved the existing ones, still using AI to help me do it though.
 
-This add-on was based on ![sim32101/Delete-Button-for-Thunderbird](https://github.com/sim32101/Delete-Button-for-Thunderbird)
+This add-on was based on [sim32101/Delete-Button-for-Thunderbird](https://github.com/sim32101/Delete-Button-for-Thunderbird)
