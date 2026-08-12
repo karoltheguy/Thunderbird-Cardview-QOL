@@ -22,7 +22,7 @@ jobs:
 
       - name: Build XPI file
         run: |
-          zip -r CardViewQOL.xpi * -x "*.git*" "*.github*" "*.xpi" "README.md"
+          zip -r CardViewQOL.xpi ./* -x "*.git*" "*.github*" "*.xpi" "README.md"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -44,6 +44,6 @@ jobs:
           name: CardViewQOL-build
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: CardViewQOL.xpi
