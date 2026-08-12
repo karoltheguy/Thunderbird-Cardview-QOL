@@ -71,6 +71,9 @@ async function onToggleChange(event) {
 
 function flashSaved() {
   statusBar.textContent = "✓ Saved";
+  // A later successful save clears a stale load error, otherwise the two
+  // colours fight over the same element.
+  statusBar.classList.remove("error");
   statusBar.classList.add("saved");
   clearTimeout(statusBar._timer);
   statusBar._timer = setTimeout(() => {
@@ -115,4 +118,10 @@ colorIndicator.addEventListener("input", onColorPickerPreview);
 colorIndicator.addEventListener("change", onColorPickerCommit);
 colorIndicatorHex.addEventListener("change", onColorHexChange);
 
-loadSettings();
+// NOSONAR on the reporting line: S7785 wants top-level await, but options.html
+// loads this with a plain <script src>, where top-level await is a syntax error.
+loadSettings().catch((error) => { // NOSONAR
+  console.error("CardviewQOL: loading settings failed", error);
+  statusBar.textContent = "Could not load settings";
+  statusBar.classList.add("error");
+});

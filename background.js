@@ -14,7 +14,11 @@ async function getSettings() {
   try {
     const stored = await browser.storage.local.get(DEFAULT_SETTINGS);
     return stored;
-  } catch (e) {
+  } catch (error) {
+    // Falling back to defaults keeps the add-on usable, but swallowing this
+    // silently made a broken storage layer look like the user had never
+    // changed a setting. Log it so the cause is visible in the console.
+    console.error("CardviewQOL: reading stored settings failed, using defaults", error);
     return DEFAULT_SETTINGS;
   }
 }
@@ -30,7 +34,11 @@ async function init() {
 }
 
 // Run immediately on add-on startup.
-init();
+// NOSONAR on the reporting line: S7785 wants top-level await, but MV2 loads
+// this as a classic script, where top-level await is a syntax error.
+init().catch((error) => { // NOSONAR
+  console.error("CardviewQOL: startup failed", error);
+});
 
 // Listen for new tabs.
 browser.tabs.onCreated.addListener(async (tabInfo) => {
