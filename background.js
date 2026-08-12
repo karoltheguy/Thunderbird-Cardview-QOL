@@ -34,9 +34,11 @@ async function init() {
 }
 
 // Run immediately on add-on startup.
-init().catch((error) => {
+// NOSONAR on the reporting line: S7785 wants top-level await, but MV2 loads
+// this as a classic script, where top-level await is a syntax error.
+init().catch((error) => { // NOSONAR
   console.error("CardviewQOL: startup failed", error);
-}); // NOSONAR
+});
 
 // Listen for new tabs.
 browser.tabs.onCreated.addListener(async (tabInfo) => {

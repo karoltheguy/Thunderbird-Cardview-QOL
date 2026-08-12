@@ -118,8 +118,10 @@ colorIndicator.addEventListener("input", onColorPickerPreview);
 colorIndicator.addEventListener("change", onColorPickerCommit);
 colorIndicatorHex.addEventListener("change", onColorHexChange);
 
-loadSettings().catch((error) => {
+// NOSONAR on the reporting line: S7785 wants top-level await, but options.html
+// loads this with a plain <script src>, where top-level await is a syntax error.
+loadSettings().catch((error) => { // NOSONAR
   console.error("CardviewQOL: loading settings failed", error);
   statusBar.textContent = "Could not load settings";
   statusBar.classList.add("error");
-}); // NOSONAR
+});
