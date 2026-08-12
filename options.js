@@ -33,6 +33,12 @@ if (typeof browser !== "undefined" && browser.runtime?.getManifest) {
 // if the user types something invalid.
 let lastValidReadIndicatorColor = DEFAULT_SETTINGS.readIndicatorColor;
 
+// role="switch" requires an explicit aria-checked, so it has to be mirrored
+// from the checkbox state everywhere that state can change.
+function syncAriaChecked(toggle) {
+  toggle.setAttribute("aria-checked", String(toggle.checked));
+}
+
 // Load saved settings and populate toggles
 async function loadSettings() {
   const stored = await browser.storage.local.get(DEFAULT_SETTINGS);
@@ -41,6 +47,7 @@ async function loadSettings() {
     if (key in stored) {
       toggle.checked = stored[key];
     }
+    syncAriaChecked(toggle);
   }
 
   lastValidReadIndicatorColor = normalizeHexColor(stored.readIndicatorColor);
@@ -52,6 +59,7 @@ async function loadSettings() {
 async function onToggleChange(event) {
   const key = event.target.dataset.key;
   const value = event.target.checked;
+  syncAriaChecked(event.target);
   await browser.storage.local.set({ [key]: value });
   flashSaved();
 }
