@@ -1,5 +1,8 @@
+# shellcheck shell=bash
+#
 # Commit subject format, shared by the commit-msg hook and the CI check so the two
-# cannot drift apart. Sourced, not executed.
+# cannot drift apart. Sourced rather than executed, hence the shell directive above
+# in place of a shebang.
 
 commit_msg_type_regex='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
 commit_msg_scope_regex='.{1,20}'

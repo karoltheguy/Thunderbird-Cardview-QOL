@@ -9,6 +9,7 @@
 
 set -euo pipefail
 
+# shellcheck source=.githooks/lib/format.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib/format.sh"
 
 # The first line that is neither blank nor one of git's own comment lines.
