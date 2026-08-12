@@ -1,0 +1,45 @@
+name: Commit messages
+
+# Backstop for .githooks/commit-msg, which is skipped by --no-verify and never runs at
+# all for commits authored in the GitHub web UI. GitHub's own push-time equivalent is a
+# ruleset with a commit_message_pattern rule, which this account cannot create, so a
+# required status check on main is what makes the format binding.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit message format
+        env:
+          BASE_SHA: "${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA: "${{ github.event.pull_request.head.sha }}"
+        run: |
+          source .githooks/lib/format.sh
+
+          error=""
+          while read -r commit; do
+            subject=$(git show -s --format=%s "$commit")
+            if subject_is_valid "$subject"; then
+              echo "ok   ${commit:0:8}  ${subject}"
+            else
+              echo "::error::Invalid commit message format in ${commit}: ${subject}"
+              error="true"
+            fi
+          done < <(git rev-list "${BASE_SHA}..${HEAD_SHA}")
+
+          if [ -n "$error" ]; then
+            echo
+            commit_msg_help
+            exit 1
+          fi
