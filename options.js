@@ -1,3 +1,8 @@
+// `browser` is the WebExtension API object, provided by Thunderbird at
+// runtime. Declaring it keeps ESLint (and so Codacy) from reporting every use
+// as an undefined variable.
+/* global browser */
+
 const DEFAULT_SETTINGS = {
   showDeleteButton: true,
   showFavoriteStar: true,
