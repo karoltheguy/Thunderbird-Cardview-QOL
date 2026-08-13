@@ -47,10 +47,13 @@ function syncAriaChecked(toggle) {
 // Load saved settings and populate toggles
 async function loadSettings() {
   const stored = await browser.storage.local.get(DEFAULT_SETTINGS);
+  // A Map lookup avoids a dynamic property read on an object built from
+  // stored data.
+  const storedEntries = new Map(Object.entries(stored));
   for (const toggle of toggles) {
     const key = toggle.dataset.key;
-    if (key in stored) {
-      toggle.checked = stored[key];
+    if (storedEntries.has(key)) {
+      toggle.checked = storedEntries.get(key);
     }
     syncAriaChecked(toggle);
   }
@@ -65,8 +68,12 @@ async function onToggleChange(event) {
   const key = event.target.dataset.key;
   const value = event.target.checked;
   syncAriaChecked(event.target);
-  await browser.storage.local.set({ [key]: value });
-  flashSaved();
+  try {
+    await browser.storage.local.set({ [key]: value });
+    flashSaved();
+  } catch (error) {
+    showError("saving a toggle failed", error);
+  }
 }
 
 function flashSaved() {
@@ -82,6 +89,15 @@ function flashSaved() {
   }, 2000);
 }
 
+// A failed save must not leave the "✓ Saved" flash on screen implying it worked.
+function showError(message, error) {
+  console.error(`CardviewQOL: ${message}`, error);
+  clearTimeout(statusBar._timer);
+  statusBar.textContent = "Could not save settings";
+  statusBar.classList.remove("saved");
+  statusBar.classList.add("error");
+}
+
 // Color picker (dragging) → live preview in the text field only, no persist
 function onColorPickerPreview(event) {
   const value = event.target.value;
@@ -93,8 +109,12 @@ async function onColorPickerCommit(event) {
   const value = event.target.value;
   colorIndicatorHex.value = value;
   lastValidReadIndicatorColor = value;
-  await browser.storage.local.set({ readIndicatorColor: value });
-  flashSaved();
+  try {
+    await browser.storage.local.set({ readIndicatorColor: value });
+    flashSaved();
+  } catch (error) {
+    showError("saving the indicator colour failed", error);
+  }
 }
 
 // Text field → validate, persist and mirror into the picker; revert if invalid
@@ -103,8 +123,12 @@ async function onColorHexChange(event) {
   if (HEX_COLOR_PATTERN.test(value)) {
     lastValidReadIndicatorColor = value;
     colorIndicator.value = value;
-    await browser.storage.local.set({ readIndicatorColor: value });
-    flashSaved();
+    try {
+      await browser.storage.local.set({ readIndicatorColor: value });
+      flashSaved();
+    } catch (error) {
+      showError("saving the indicator colour failed", error);
+    }
   } else {
     colorIndicatorHex.value = lastValidReadIndicatorColor;
   }

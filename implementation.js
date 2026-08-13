@@ -46,10 +46,7 @@
     readIndicatorColor: DEFAULT_READ_INDICATOR_COLOR,
   };
 
-  function buildCSS(settings) {
-    const s = { ...defaultSettings, ...settings };
-    const readIndicatorColor = normalizeHexColor(s.readIndicatorColor);
-    let css = `
+  const BASE_CSS = `
   /* === Anchor containers that hold our injected elements (:has() — Gecko 121+) === */
   .card-container:has(> .${buttonClass}),
   .card-container:has(> .${readIndicatorClass}),
@@ -115,9 +112,8 @@
   }
   `;
 
-    if (s.showDeleteButton) {
-      // Toggle ON  → hover-only: hidden at rest, visible on hover
-      css += `
+  // Toggle ON  → hover-only: hidden at rest, visible on hover
+  const DELETE_BUTTON_HOVER_CSS = `
   /* === Delete button: hover-only mode === */
   .thread-card-icon-info > .${buttonClass},
   .card-container > .${buttonClass} {
@@ -132,9 +128,9 @@
     pointer-events: auto !important;
   }
   `;
-    } else {
-      // Toggle OFF → always-show: matches original pre-hover behaviour
-      css += `
+
+  // Toggle OFF → always-show: matches original pre-hover behaviour
+  const DELETE_BUTTON_ALWAYS_CSS = `
   /* === Delete button: always-visible mode === */
   .thread-card-icon-info > .${buttonClass},
   .card-container > .${buttonClass} {
@@ -142,13 +138,11 @@
     pointer-events: auto !important;
   }
   `;
-    }
 
-    if (s.showFavoriteStar) {
-      // Real Thunderbird class confirmed from source (about3Pane.xhtml line 336):
-      // <button class="button-star tree-button-flag">
-      // The wrapper is .tree-view-row-flag
-      css += `
+  // Real Thunderbird class confirmed from source (about3Pane.xhtml line 336):
+  // <button class="button-star tree-button-flag">
+  // The wrapper is .tree-view-row-flag
+  const FAVORITE_STAR_CSS = `
   /* === Favorite star: hover-only mode === */
   .tree-button-flag {
     opacity: 0 !important;
@@ -170,10 +164,8 @@
     border-radius: 4px !important;
   }
   `;
-    }
 
-    if (s.showReadIndicator) {
-      css += `
+  const READ_INDICATOR_HIT_AREA_CSS = `
   /* === Read/unread vertical bar === */
   .${readIndicatorClass} {
     position: absolute !important;
@@ -185,7 +177,10 @@
     cursor: pointer !important;
     z-index: 20 !important;
   }
+`;
 
+  function readIndicatorBarCSS(readIndicatorColor) {
+    return `
   /* The visible blue bar */
   .${readIndicatorClass}::before {
     content: "" !important;
@@ -198,7 +193,10 @@
     border-radius: 0 2px 2px 0 !important;
     transition: opacity 0.2s ease, inline-size 0.2s ease !important;
   }
+`;
+  }
 
+  const READ_INDICATOR_STATE_CSS = `
   .${readIndicatorClass}[data-read="true"] {
     pointer-events: none !important;
   }
@@ -233,7 +231,9 @@
   .${readIndicatorClass}[data-read="true"]:hover::before {
     opacity: 0.5 !important;
   }
+`;
 
+  const NATIVE_UNREAD_INDICATOR_CSS = `
   /* Hide Thunderbird's native unread indicator button when our bar is present.
      Aggressively targets all known unread indicator classes/wrappers in different TB versions. */
   :is(tr, li, thread-card, [is="thread-card"]):has(.${readIndicatorClass}) .tree-button-unread,
@@ -251,9 +251,23 @@
     border-left-color: transparent !important;
   }
   `;
-    }
 
-    return css;
+  function buildCSS(settings) {
+    const s = { ...defaultSettings, ...settings };
+    const blocks = [BASE_CSS];
+    blocks.push(s.showDeleteButton ? DELETE_BUTTON_HOVER_CSS : DELETE_BUTTON_ALWAYS_CSS);
+    if (s.showFavoriteStar) {
+      blocks.push(FAVORITE_STAR_CSS);
+    }
+    if (s.showReadIndicator) {
+      blocks.push(
+        READ_INDICATOR_HIT_AREA_CSS,
+        readIndicatorBarCSS(normalizeHexColor(s.readIndicatorColor)),
+        READ_INDICATOR_STATE_CSS,
+        NATIVE_UNREAD_INDICATOR_CSS
+      );
+    }
+    return blocks.join("");
   }
 
   function addDynamicCSS(document, id, css) {
@@ -308,23 +322,19 @@
     return viewIndex >= 0 ? viewIndex : null;
   }
 
-  function getMessageHeader(card) {
-    const contentWin = card.ownerDocument.defaultView;
-    const rawCard = unwrap(card);
-    const dbView = unwrap(contentWin?.gDBView);
-    const viewIndex = getViewIndex(card, rawCard);
-
-    if (dbView && viewIndex !== null && typeof dbView.getMsgHdrAt === "function") {
-      try {
-        const msgHdr = dbView.getMsgHdrAt(viewIndex);
-        if (msgHdr) {
-          return msgHdr;
-        }
-      } catch (err) {
-        console.warn("QuickDelete: gDBView lookup failed", err);
-      }
+  function getHeaderFromDbView(dbView, viewIndex) {
+    if (!dbView || viewIndex === null || typeof dbView.getMsgHdrAt !== "function") {
+      return null;
     }
+    try {
+      return dbView.getMsgHdrAt(viewIndex) || null;
+    } catch (err) {
+      console.warn("QuickDelete: gDBView lookup failed", err);
+      return null;
+    }
+  }
 
+  function getHeaderFromCardProperties(rawCard) {
     try {
       const fallbackMsg =
         rawCard.message ||
@@ -333,14 +343,20 @@
         rawCard._instance?.message ||
         rawCard._instance?.messageDisplayItem?.message;
 
-      if (fallbackMsg && typeof fallbackMsg !== "number") {
-        return fallbackMsg;
-      }
+      return fallbackMsg && typeof fallbackMsg !== "number" ? fallbackMsg : null;
     } catch (err) {
       console.warn("QuickDelete: Property access failed", err);
+      return null;
     }
+  }
 
-    return null;
+  function getMessageHeader(card) {
+    const contentWin = card.ownerDocument.defaultView;
+    const rawCard = unwrap(card);
+    const dbView = unwrap(contentWin?.gDBView);
+    const viewIndex = getViewIndex(card, rawCard);
+
+    return getHeaderFromDbView(dbView, viewIndex) ?? getHeaderFromCardProperties(rawCard);
   }
 
   function deleteCardFromButton(button) {

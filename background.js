@@ -42,18 +42,26 @@ init().catch((error) => { // NOSONAR
 
 // Listen for new tabs.
 browser.tabs.onCreated.addListener(async (tabInfo) => {
-  if (tabInfo.type === "mail") {
-    const settings = await getSettings();
-    await browser.cardModifier.add(tabInfo.id, settings);
+  try {
+    if (tabInfo.type === "mail") {
+      const settings = await getSettings();
+      await browser.cardModifier.add(tabInfo.id, settings);
+    }
+  } catch (error) {
+    console.error("CardviewQOL: attaching to new tab failed", error);
   }
 });
 
 // Live-reload when settings change (no restart needed).
 browser.storage.onChanged.addListener(async (changes, area) => {
   if (area !== "local") return;
-  const settings = await getSettings();
-  const tabs = await browser.tabs.query({ type: "mail" });
-  for (const tabInfo of tabs) {
-    await browser.cardModifier.reload(tabInfo.id, settings);
+  try {
+    const settings = await getSettings();
+    const tabs = await browser.tabs.query({ type: "mail" });
+    for (const tabInfo of tabs) {
+      await browser.cardModifier.reload(tabInfo.id, settings);
+    }
+  } catch (error) {
+    console.error("CardviewQOL: reloading tabs after a settings change failed", error);
   }
 });
