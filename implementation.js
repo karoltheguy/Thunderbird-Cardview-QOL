@@ -165,8 +165,7 @@
   }
   `;
 
-  function readIndicatorCSS(readIndicatorColor) {
-    return `
+  const READ_INDICATOR_HIT_AREA_CSS = `
   /* === Read/unread vertical bar === */
   .${readIndicatorClass} {
     position: absolute !important;
@@ -178,7 +177,10 @@
     cursor: pointer !important;
     z-index: 20 !important;
   }
+`;
 
+  function readIndicatorBarCSS(readIndicatorColor) {
+    return `
   /* The visible blue bar */
   .${readIndicatorClass}::before {
     content: "" !important;
@@ -191,7 +193,10 @@
     border-radius: 0 2px 2px 0 !important;
     transition: opacity 0.2s ease, inline-size 0.2s ease !important;
   }
+`;
+  }
 
+  const READ_INDICATOR_STATE_CSS = `
   .${readIndicatorClass}[data-read="true"] {
     pointer-events: none !important;
   }
@@ -226,7 +231,9 @@
   .${readIndicatorClass}[data-read="true"]:hover::before {
     opacity: 0.5 !important;
   }
+`;
 
+  const NATIVE_UNREAD_INDICATOR_CSS = `
   /* Hide Thunderbird's native unread indicator button when our bar is present.
      Aggressively targets all known unread indicator classes/wrappers in different TB versions. */
   :is(tr, li, thread-card, [is="thread-card"]):has(.${readIndicatorClass}) .tree-button-unread,
@@ -244,7 +251,6 @@
     border-left-color: transparent !important;
   }
   `;
-  }
 
   function buildCSS(settings) {
     const s = { ...defaultSettings, ...settings };
@@ -254,7 +260,12 @@
       blocks.push(FAVORITE_STAR_CSS);
     }
     if (s.showReadIndicator) {
-      blocks.push(readIndicatorCSS(normalizeHexColor(s.readIndicatorColor)));
+      blocks.push(
+        READ_INDICATOR_HIT_AREA_CSS,
+        readIndicatorBarCSS(normalizeHexColor(s.readIndicatorColor)),
+        READ_INDICATOR_STATE_CSS,
+        NATIVE_UNREAD_INDICATOR_CSS
+      );
     }
     return blocks.join("");
   }
