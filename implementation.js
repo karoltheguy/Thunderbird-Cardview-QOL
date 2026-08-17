@@ -415,7 +415,7 @@
           return;
         }
         try {
-          msgHdr.markRead(!msgHdr.isRead);
+          msgHdr.folder.markMessagesRead([msgHdr],!msgHdr.isRead);
           indicator.dataset.read = String(msgHdr.isRead);
         } catch (err) {
           console.error("QuickReadToggle: Failed to toggle read state", err);
