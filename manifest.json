@@ -5,8 +5,6 @@
   "description": "Quality of life features in cardview",
   "author": "Carol Ouellet",
   "permissions": [
-    "messagesRead",
-    "messagesMove",
     "storage"
   ],
   "background": {
