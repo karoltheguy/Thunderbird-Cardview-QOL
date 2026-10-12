@@ -39,7 +39,8 @@ Features can be individually enabled or disabled via the add-on settings page. T
 2. Go to the `Extensions` tab.
 3. Click the wrench icon (Options) next to the add-on name.
 
-<img width="664" height="741" alt="Cardview QOL settings page" src="https://github.com/user-attachments/assets/697be76f-7d2d-48f2-b301-a79adaa2d0cb" />
+<img width="658" height="742" alt="Option Window" src="https://github.com/user-attachments/assets/a8eaabfe-f3c1-43eb-b452-134ac70107d9" />
+
 
 ## Installation
 
