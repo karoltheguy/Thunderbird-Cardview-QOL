@@ -40,7 +40,8 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "carol.ouellet@gmail.com",
-      "strict_min_version": "140.0"
+      "strict_min_version": "140.0",
+      "strict_max_version": "156.0" 
     }
   }
 }
