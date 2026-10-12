@@ -4,6 +4,9 @@ name: Commit messages
 # all for commits authored in the GitHub web UI. GitHub's own push-time equivalent is a
 # ruleset with a commit_message_pattern rule, which this account cannot create, so a
 # required status check on main is what makes the format binding.
+#
+# Accepted prefixes: build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test
+#
 on:
   pull_request:
 
