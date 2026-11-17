@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Cardview QOL",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "description": "Quality of life features in cardview",
   "author": "Carol Ouellet",
   "permissions": [
@@ -41,7 +41,7 @@
     "gecko": {
       "id": "carol.ouellet@gmail.com",
       "strict_min_version": "140.0",
-      "strict_max_version": "156.0" 
+      "strict_max_version": "160.0" 
     }
   }
 }
